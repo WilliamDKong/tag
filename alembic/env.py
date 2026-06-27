@@ -1,4 +1,5 @@
 import asyncio
+import os
 from logging.config import fileConfig
 from sqlalchemy.ext.asyncio import create_async_engine
 from alembic import context
@@ -11,6 +12,13 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
+
+# 优先使用环境变量（Railway 部署时使用），并自动转换格式
+_db_url = os.environ.get("DATABASE_URL")
+if _db_url:
+    if _db_url.startswith("postgresql://"):
+        _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    config.set_main_option("sqlalchemy.url", _db_url)
 
 
 def run_migrations_offline() -> None:
