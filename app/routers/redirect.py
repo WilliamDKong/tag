@@ -15,7 +15,7 @@ async def scan_redirect(id: str, db: AsyncSession = Depends(get_db)):
     tag = result.scalar_one_or_none()
 
     if not tag:
-        raise HTTPException(status_code=404, detail="标签不存在")
+        return RedirectResponse(url=f"/activate?id={id}")
 
     if tag.user_id is None:
         return RedirectResponse(url=f"/activate?id={id}")
