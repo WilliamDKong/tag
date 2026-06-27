@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Links</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; min-height: 100vh; }
+
+    /* 顶部导航栏 */
+    nav { background: white; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; position: relative; }
+    .nav-logo { font-weight: 700; font-size: 16px; letter-spacing: 0.5px; }
+    .hamburger { cursor: pointer; display: flex; flex-direction: column; gap: 5px; padding: 4px; }
+    .hamburger span { display: block; width: 22px; height: 2px; background: #000; border-radius: 2px; transition: all 0.3s; }
+
+    /* 展开菜单 */
+    .menu { display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #eee; border-radius: 12px; padding: 8px; margin: 8px 16px 0 0; min-width: 160px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 100; }
+    .menu.open { display: block; }
+    .menu a { display: block; padding: 10px 16px; font-size: 14px; color: #333; text-decoration: none; border-radius: 8px; }
+    .menu a:hover { background: #f5f5f5; }
+
+    /* 链接列表 */
+    .container { max-width: 480px; margin: 0 auto; padding: 32px 20px; }
+    .link-item { display: block; background: white; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; text-decoration: none; color: #000; font-size: 15px; font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: transform 0.15s, box-shadow 0.15s; }
+    .link-item:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .empty { text-align: center; color: #aaa; font-size: 14px; margin-top: 60px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <span class="nav-logo">Tagging</span>
+    <div class="hamburger" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="menu" id="menu">
+      <a href="https://tagging.io">About Tagging</a>
+      <a href="/dashboard/{{ tag_id }}">Edit this tag</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    {% if links %}
+      {% for link in links %}
+        <a class="link-item" href="{{ link.url }}" target="_blank" rel="noopener">
+          {{ link.label }}
+        </a>
+      {% endfor %}
+    {% else %}
+      <p class="empty">No links added yet.</p>
+    {% endif %}
+  </div>
+
+  <script>
+    function toggleMenu() {
+      document.getElementById('menu').classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+      const menu = document.getElementById('menu');
+      if (!e.target.closest('.hamburger') && !e.target.closest('.menu')) {
+        menu.classList.remove('open');
+      }
+    });
+  </script>
+</body>
+</html>
