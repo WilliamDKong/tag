@@ -21,6 +21,7 @@
     .link-item { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: grab; }
     .link-item:active { cursor: grabbing; }
     .drag-handle { color: #ccc; font-size: 18px; user-select: none; }
+    .link-icon { width: 28px; height: 28px; border-radius: 6px; object-fit: contain; flex-shrink: 0; background: #f5f5f5; padding: 4px; }
     .link-info { flex: 1; min-width: 0; }
     .link-label { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .link-url { font-size: 12px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -96,6 +97,44 @@
     let links = [];
     let currentMode = "DIRECT";
 
+    const PLATFORM_MAP = [
+      { match: 'instagram.com',              icon: 'instagram' },
+      { match: 'linkedin.com',               icon: 'linkedin' },
+      { match: 'github.com',                 icon: 'github' },
+      { match: ['twitter.com','x.com'],      icon: 'x' },
+      { match: 'facebook.com',               icon: 'facebook' },
+      { match: ['youtube.com','youtu.be'],   icon: 'youtube' },
+      { match: 'tiktok.com',                 icon: 'tiktok' },
+      { match: 'bilibili.com',               icon: 'bilibili' },
+      { match: 'spotify.com',                icon: 'spotify' },
+      { match: 'twitch.tv',                  icon: 'twitch' },
+      { match: 'weibo.com',                  icon: 'sinaweibo' },
+      { match: ['xiaohongshu.com','xhslink.com'], icon: 'xiaohongshu' },
+      { match: 'pinterest.com',              icon: 'pinterest' },
+      { match: 'snapchat.com',               icon: 'snapchat' },
+      { match: 'discord.com',                icon: 'discord' },
+      { match: 'telegram.org',               icon: 'telegram' },
+      { match: 'behance.net',                icon: 'behance' },
+      { match: 'dribbble.com',               icon: 'dribbble' },
+    ];
+
+    function getIconUrl(url) {
+      const u = url.toLowerCase();
+      for (const p of PLATFORM_MAP) {
+        const matches = Array.isArray(p.match) ? p.match : [p.match];
+        if (matches.some(m => u.includes(m))) {
+          return `https://cdn.simpleicons.org/${p.icon}`;
+        }
+      }
+      return null; // 无匹配，用默认图标
+    }
+
+    function iconHtml(url) {
+      const src = getIconUrl(url);
+      if (src) return `<img class="link-icon" src="${src}" onerror="this.style.display='none'">`;
+      return `<span class="link-icon" style="display:flex;align-items:center;justify-content:center;font-size:14px;">🔗</span>`;
+    }
+
     async function loadMode() {
       const res = await fetch(`/tags/my`);
       const tags = await res.json();
@@ -138,6 +177,7 @@
       list.innerHTML = links.map(l => `
         <div class="link-item" data-id="${l.id}" id="item-${l.id}">
           <span class="drag-handle">⠿</span>
+          ${iconHtml(l.url)}
           <div class="link-info">
             <div class="link-label">${l.label}</div>
             <div class="link-url">${l.url}</div>

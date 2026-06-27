@@ -22,8 +22,10 @@
 
     /* 链接列表 */
     .container { max-width: 480px; margin: 0 auto; padding: 32px 20px; }
-    .link-item { display: block; background: white; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; text-decoration: none; color: #000; font-size: 15px; font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: transform 0.15s, box-shadow 0.15s; }
+    .link-item { display: flex; align-items: center; gap: 12px; background: white; border-radius: 12px; padding: 14px 20px; margin-bottom: 12px; text-decoration: none; color: #000; font-size: 15px; font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: transform 0.15s, box-shadow 0.15s; }
     .link-item:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .link-icon { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
+    .link-label { flex: 1; }
     .empty { text-align: center; color: #aaa; font-size: 14px; margin-top: 60px; }
   </style>
 </head>
@@ -42,7 +44,11 @@
     {% if links %}
       {% for link in links %}
         <a class="link-item" href="{{ link.url }}" target="_blank" rel="noopener">
-          {{ link.label }}
+          <img class="link-icon" id="icon-{{ loop.index }}"
+               src="" alt=""
+               data-url="{{ link.url }}"
+               onerror="this.style.display='none'">
+          <span class="link-label">{{ link.label }}</span>
         </a>
       {% endfor %}
     {% else %}
@@ -51,6 +57,47 @@
   </div>
 
   <script>
+    const PLATFORM_MAP = [
+      { match: ['instagram.com'],                  icon: 'instagram' },
+      { match: ['linkedin.com'],                   icon: 'linkedin' },
+      { match: ['github.com'],                     icon: 'github' },
+      { match: ['twitter.com','x.com'],            icon: 'x' },
+      { match: ['facebook.com'],                   icon: 'facebook' },
+      { match: ['youtube.com','youtu.be'],         icon: 'youtube' },
+      { match: ['tiktok.com'],                     icon: 'tiktok' },
+      { match: ['bilibili.com'],                   icon: 'bilibili' },
+      { match: ['spotify.com'],                    icon: 'spotify' },
+      { match: ['twitch.tv'],                      icon: 'twitch' },
+      { match: ['weibo.com'],                      icon: 'sinaweibo' },
+      { match: ['xiaohongshu.com','xhslink.com'],  icon: 'xiaohongshu' },
+      { match: ['pinterest.com'],                  icon: 'pinterest' },
+      { match: ['snapchat.com'],                   icon: 'snapchat' },
+      { match: ['discord.com'],                    icon: 'discord' },
+      { match: ['telegram.org'],                   icon: 'telegram' },
+      { match: ['behance.net'],                    icon: 'behance' },
+      { match: ['dribbble.com'],                   icon: 'dribbble' },
+    ];
+
+    function getIconUrl(url) {
+      const u = url.toLowerCase();
+      for (const p of PLATFORM_MAP) {
+        if (p.match.some(m => u.includes(m))) {
+          return `https://cdn.simpleicons.org/${p.icon}`;
+        }
+      }
+      return null;
+    }
+
+    // 为每个链接设置图标
+    document.querySelectorAll('.link-icon[data-url]').forEach(img => {
+      const src = getIconUrl(img.dataset.url);
+      if (src) {
+        img.src = src;
+      } else {
+        img.style.display = 'none';
+      }
+    });
+
     function toggleMenu() {
       document.getElementById('menu').classList.toggle('open');
     }
