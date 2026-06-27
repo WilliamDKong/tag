@@ -113,7 +113,7 @@
 
     async function bindTag() {
       await fetch(`/tags/bind/${TAG_ID}`, { method: 'POST' });
-      window.location.href = `/dashboard/${TAG_ID}`;
+      window.location.href = `/tags/dashboard/${TAG_ID}`;
     }
   </script>
 </body>

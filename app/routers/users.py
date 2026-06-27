@@ -50,4 +50,7 @@ async def login(data: UserLogin, response: Response, db: AsyncSession = Depends(
 async def logout(response: Response):
     """退出登录，清除 Cookie"""
     response.delete_cookie("access_token")
-    return {"message": "已退出"}
+    from fastapi.responses import RedirectResponse
+    res = RedirectResponse(url="/login", status_code=302)
+    res.delete_cookie("access_token")
+    return res

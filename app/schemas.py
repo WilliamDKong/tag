@@ -23,3 +23,7 @@ class LinkUpdate(BaseModel):
 
 class LinkReorder(BaseModel):
     link_ids: list[int]  # 拖拽后的新顺序，传入 id 列表
+
+
+class ModeSwitch(BaseModel):
+    mode: str  # "DIRECT" 或 "DISPLAY"

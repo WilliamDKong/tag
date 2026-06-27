@@ -43,6 +43,7 @@
   <nav>
     <span class="nav-logo">Tagging</span>
     <div class="nav-right">
+      <a href="/my-tags" style="font-size:13px;color:#888;text-decoration:none;margin-right:16px;">My Tags</a>
       <button class="btn-logout" onclick="logout()">Log out</button>
     </div>
   </nav>
@@ -50,6 +51,17 @@
   <div class="container">
     <h2>My Links</h2>
     <p class="tag-id">Tag ID: {{ tag_id }}</p>
+
+    <!-- 模式切换 -->
+    <div style="background:white;border-radius:12px;padding:16px 20px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:14px;font-weight:600;" id="mode-label">Mode: Direct</div>
+        <div style="font-size:12px;color:#aaa;" id="mode-desc">Tap → goes straight to first link</div>
+      </div>
+      <div onclick="toggleMode()" id="toggle-btn" style="width:44px;height:24px;background:#ccc;border-radius:24px;cursor:pointer;position:relative;transition:.3s;">
+        <div id="toggle-thumb" style="position:absolute;width:18px;height:18px;background:white;border-radius:50%;top:3px;left:3px;transition:.3s;"></div>
+      </div>
+    </div>
 
     <div class="link-list" id="link-list">
       <!-- 链接由 JS 渲染 -->
@@ -72,6 +84,33 @@
   <script>
     const TAG_ID = "{{ tag_id }}";
     let links = [];
+    let currentMode = "DIRECT";
+
+    async function loadMode() {
+      const res = await fetch(`/tags/my`);
+      const tags = await res.json();
+      const tag = tags.find(t => t.id === TAG_ID);
+      if (tag) setMode(tag.mode || "DIRECT");
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      const isDisplay = mode === "DISPLAY";
+      document.getElementById('toggle-btn').style.background = isDisplay ? '#000' : '#ccc';
+      document.getElementById('toggle-thumb').style.left = isDisplay ? '23px' : '3px';
+      document.getElementById('mode-label').textContent = isDisplay ? 'Mode: Display' : 'Mode: Direct';
+      document.getElementById('mode-desc').textContent = isDisplay ? 'Tap → shows all links' : 'Tap → goes straight to first link';
+    }
+
+    async function toggleMode() {
+      const newMode = currentMode === "DIRECT" ? "DISPLAY" : "DIRECT";
+      await fetch(`/tags/${TAG_ID}/mode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: newMode })
+      });
+      setMode(newMode);
+    }
 
     async function loadLinks() {
       const res = await fetch(`/links/${TAG_ID}`);
@@ -135,10 +174,11 @@
 
     async function logout() {
       await fetch('/users/logout', { method: 'POST' });
-      window.location.href = '/';
+      window.location.href = '/login';
     }
 
     loadLinks();
+    loadMode();
   </script>
 </body>
 </html>

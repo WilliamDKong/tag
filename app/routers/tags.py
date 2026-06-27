@@ -5,9 +5,10 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
-from app.models import NFCTag, User
+from app.models import NFCTag, ModeEnum, User
 from app.auth import get_current_user
 from app.templates_engine import render
+from app.schemas import ModeSwitch
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -52,6 +53,25 @@ async def bind_tag(
     return {"message": "绑定成功"}
 
 
+@router.post("/{tag_id}/mode")
+async def switch_mode(
+    tag_id: str,
+    data: ModeSwitch,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """切换 DIRECT / DISPLAY 模式"""
+    result = await db.execute(select(NFCTag).where(NFCTag.id == tag_id))
+    tag = result.scalar_one_or_none()
+
+    if not tag or tag.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权操作")
+
+    tag.current_mode = ModeEnum(data.mode)
+    await db.commit()
+    return {"message": "模式切换成功", "mode": data.mode}
+
+
 @router.get("/my")
 async def get_my_tags(
     current_user: User = Depends(get_current_user),
@@ -59,7 +79,7 @@ async def get_my_tags(
 ):
     result = await db.execute(select(NFCTag).where(NFCTag.user_id == current_user.id))
     tags = result.scalars().all()
-    return [{"id": t.id, "created_at": t.created_at} for t in tags]
+    return [{"id": t.id, "mode": t.current_mode, "created_at": t.created_at} for t in tags]
 
 
 @router.get("/dashboard/{tag_id}")

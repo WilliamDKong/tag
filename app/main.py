@@ -12,10 +12,20 @@ app.include_router(redirect.router)
 
 @app.get("/")
 async def root():
-    return {"message": "Tagging API is running"}
+    return render("login.html")
 
 
 @app.get("/activate")
 async def activate_page(id: str):
     """首次扫码激活页"""
     return render("activate.html", tag_id=id)
+
+
+@app.get("/login")
+async def login_page():
+    return render("login.html")
+
+
+@app.get("/my-tags")
+async def my_tags_page():
+    return render("my_tags.html")

@@ -1,13 +1,19 @@
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Text, Integer, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
+import enum
+
+
+class ModeEnum(str, enum.Enum):
+    DIRECT = "DIRECT"      # 直接跳转第一条链接
+    DISPLAY = "DISPLAY"    # 展示链接列表供访客选择
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String, primary_key=True)           # 随机生成的唯一ID
+    id = Column(String, primary_key=True)
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -18,8 +24,9 @@ class User(Base):
 class NFCTag(Base):
     __tablename__ = "nfc_tags"
 
-    id = Column(String(10), primary_key=True)        # 5位短码，如 W67B9
-    user_id = Column(String, ForeignKey("users.id"), nullable=True)  # NULL = 未绑定
+    id = Column(String(10), primary_key=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
+    current_mode = Column(Enum(ModeEnum), default=ModeEnum.DIRECT, nullable=False, server_default="DIRECT")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="tags")
