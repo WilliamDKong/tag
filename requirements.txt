@@ -5,6 +5,7 @@ asyncpg
 alembic
 jinja2
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt
 python-multipart
 python-dotenv
+pydantic[email]
