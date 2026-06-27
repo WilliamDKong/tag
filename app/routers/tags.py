@@ -44,7 +44,12 @@ async def bind_tag(
     tag = result.scalar_one_or_none()
 
     if not tag:
-        raise HTTPException(status_code=404, detail="标签不存在")
+        # 真实 NFC tag 首次激活时，数据库里还没有记录，直接创建并绑定
+        tag = NFCTag(id=tag_id, user_id=current_user.id)
+        db.add(tag)
+        await db.commit()
+        return {"message": "绑定成功"}
+
     if tag.user_id is not None:
         raise HTTPException(status_code=400, detail="标签已被绑定")
 
