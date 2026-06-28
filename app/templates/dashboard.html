@@ -97,40 +97,15 @@
     let links = [];
     let currentMode = "DIRECT";
 
-    const PLATFORM_MAP = [
-      { match: 'instagram.com',              icon: 'instagram' },
-      { match: 'linkedin.com',               icon: 'linkedin' },
-      { match: 'github.com',                 icon: 'github' },
-      { match: ['twitter.com','x.com'],      icon: 'x' },
-      { match: 'facebook.com',               icon: 'facebook' },
-      { match: ['youtube.com','youtu.be'],   icon: 'youtube' },
-      { match: 'tiktok.com',                 icon: 'tiktok' },
-      { match: 'bilibili.com',               icon: 'bilibili' },
-      { match: 'spotify.com',                icon: 'spotify' },
-      { match: 'twitch.tv',                  icon: 'twitch' },
-      { match: 'weibo.com',                  icon: 'sinaweibo' },
-      { match: ['xiaohongshu.com','xhslink.com'], icon: 'xiaohongshu' },
-      { match: 'pinterest.com',              icon: 'pinterest' },
-      { match: 'snapchat.com',               icon: 'snapchat' },
-      { match: 'discord.com',                icon: 'discord' },
-      { match: 'telegram.org',               icon: 'telegram' },
-      { match: 'behance.net',                icon: 'behance' },
-      { match: 'dribbble.com',               icon: 'dribbble' },
-    ];
-
-    function getIconUrl(url) {
-      const u = url.toLowerCase();
-      for (const p of PLATFORM_MAP) {
-        const matches = Array.isArray(p.match) ? p.match : [p.match];
-        if (matches.some(m => u.includes(m))) {
-          return `https://cdn.simpleicons.org/${p.icon}`;
-        }
-      }
-      return null; // 无匹配，用默认图标
+    function getFavicon(url) {
+      try {
+        const domain = new URL(url).hostname;
+        return `https://www.google.com/s2/favicons?sz=64&domain=${domain}`;
+      } catch { return null; }
     }
 
     function iconHtml(url) {
-      const src = getIconUrl(url);
+      const src = getFavicon(url);
       if (src) return `<img class="link-icon" src="${src}" onerror="this.style.display='none'">`;
       return `<span class="link-icon" style="display:flex;align-items:center;justify-content:center;font-size:14px;">🔗</span>`;
     }
