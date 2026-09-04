@@ -3,304 +3,851 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TapTag — The fastest handshake in the room.</title>
+  <title>TapTag — One tap. Every link.</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:    #08080f;
-      --text:  #f0f0f8;
-      --mute:  rgba(240,240,248,0.46);
-      --mute2: rgba(240,240,248,0.28);
-      --line:  rgba(255,255,255,0.09);
-      --p1:    #a066ff;
-      --p2:    #5fa8ff;
-      --r: 20px;
+      --bg:    #000;
+      --bg2:   #0a0a0a;
+      --bg3:   #111;
+      --t1:    #f5f5f7;
+      --t2:    #a1a1a6;
+      --t3:    #6e6e73;
+      --blue:  #2997ff;
+      --line:  rgba(255,255,255,0.08);
+      --r:     18px;
     }
+
     html { scroll-behavior: smooth; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-      background: var(--bg); color: var(--text);
-      min-height: 100vh; overflow-x: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Blobs ── */
-    .blobs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-    .blob { position: absolute; border-radius: 50%; filter: blur(100px); }
-    .b1 { width: 700px; height: 700px; top: -220px; left: -160px; background: rgba(110,60,255,0.22); animation: d1 20s ease-in-out infinite alternate; }
-    .b2 { width: 580px; height: 580px; bottom: -120px; right: -80px;  background: rgba(40,120,255,0.16); animation: d2 24s ease-in-out infinite alternate; }
-    .b3 { width: 460px; height: 460px; top: 38%; left: 42%; background: rgba(190,70,190,0.10); animation: d3 28s ease-in-out infinite alternate; }
-    @keyframes d1 { to { transform: translate(70px,90px) scale(1.1); } }
-    @keyframes d2 { to { transform: translate(-90px,-70px) scale(1.08); } }
-    @keyframes d3 { to { transform: translate(-50px,70px); } }
-
-    /* ── Glass ── */
-    .g { background: rgba(255,255,255,0.05); backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%); border: 1px solid rgba(255,255,255,0.11); }
+    /* ── Scroll reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.72s cubic-bezier(.22,.61,.36,1), transform 0.72s cubic-bezier(.22,.61,.36,1);
+    }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+    .reveal-d1 { transition-delay: .08s; }
+    .reveal-d2 { transition-delay: .16s; }
+    .reveal-d3 { transition-delay: .24s; }
+    .reveal-d4 { transition-delay: .32s; }
+    .reveal-d5 { transition-delay: .40s; }
 
     /* ── Nav ── */
     nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 48px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 40px;
-      background: rgba(8,8,15,0.75);
-      backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px);
-      border-bottom: 1px solid var(--line);
+      padding: 0 22px;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .nav-logo {
-      font-size: 18px; font-weight: 800; letter-spacing: -0.4px; text-decoration: none;
-      background: linear-gradient(130deg,#c8a0ff,#7eb8ff);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      font-size: 17px; font-weight: 700; letter-spacing: -0.3px;
+      text-decoration: none; color: var(--t1);
     }
-    .nav-r { display: flex; gap: 10px; align-items: center; }
-    .nb { padding: 8px 20px; border-radius: 99px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; font-family: inherit; transition: .18s; }
-    .nb-ghost { color: var(--text); background: none; border: 1px solid rgba(255,255,255,0.2); }
-    .nb-ghost:hover { background: rgba(255,255,255,0.08); }
-    .nb-solid { color: #09090f; background: #f0f0f8; border: none; }
-    .nb-solid:hover { opacity: 0.88; transform: scale(1.03); }
+    .nav-r { display: flex; gap: 8px; align-items: center; }
+    .nb {
+      padding: 7px 16px; border-radius: 99px;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer; text-decoration: none; font-family: inherit;
+      transition: opacity .15s, background .15s;
+      border: none;
+    }
+    .nb-ghost { color: var(--t1); background: rgba(255,255,255,0.1); }
+    .nb-ghost:hover { background: rgba(255,255,255,0.16); }
+    .nb-blue  { color: #fff; background: var(--blue); }
+    .nb-blue:hover { opacity: .85; }
 
-    /* ── Shared section ── */
-    section { position: relative; z-index: 1; border-top: 1px solid var(--line); }
-    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
-    .sec-pad { padding: 96px 0; }
-    .eyebrow {
-      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(170,130,255,0.85); margin-bottom: 14px;
-    }
-    .sec-title {
-      font-size: clamp(26px,3.8vw,44px); font-weight: 800; letter-spacing: -1px;
-      line-height: 1.1; margin-bottom: 48px; max-width: 480px;
-    }
-
-    /* ════ HERO ════ */
+    /* ── Hero ── */
     .hero {
-      position: relative; z-index: 1;
-      min-height: 100vh;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 130px 24px 96px;
+      min-height: 100svh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative; overflow: hidden;
     }
-    .hero-label {
-      font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(170,130,255,0.75);
-      border: 1px solid rgba(170,130,255,0.2); border-radius: 99px;
-      padding: 6px 16px; margin-bottom: 36px;
+
+    /* Ambient glow */
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 45% at 50% 0%, rgba(41,151,255,.18) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 20% 70%, rgba(120,60,255,.10) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 80% 60%, rgba(255,60,120,.07) 0%, transparent 60%);
     }
+
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 28px;
+    }
+
     .hero h1 {
-      font-size: clamp(42px, 8vw, 96px);
-      font-weight: 900; letter-spacing: -3px; line-height: 1.0;
-      color: #fff; margin-bottom: 24px;
+      font-size: clamp(52px, 10vw, 120px);
+      font-weight: 700; letter-spacing: -4px; line-height: 0.96;
+      color: var(--t1);
+      margin-bottom: 28px;
     }
-    .hero h1 em {
-      font-style: normal;
-      background: linear-gradient(130deg, #c8a0ff, #7eb8ff);
+    .hero h1 .line2 {
+      display: block;
+      background: linear-gradient(90deg, #2997ff 0%, #bf5af2 50%, #ff375f 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
+
     .hero-sub {
-      max-width: 440px; font-size: clamp(15px,1.8vw,18px); line-height: 1.72;
-      color: var(--mute); margin-bottom: 44px;
+      max-width: 480px;
+      font-size: clamp(16px, 2vw, 19px);
+      line-height: 1.6; color: var(--t2);
+      margin-bottom: 44px; font-weight: 400;
     }
+
     .hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .btn-big {
-      padding: 14px 34px; border-radius: 99px; font-size: 15px; font-weight: 700;
-      cursor: pointer; text-decoration: none; font-family: inherit; transition: .2s;
+    .btn-hero-blue {
+      padding: 14px 28px; border-radius: 99px;
+      font-size: 15px; font-weight: 600;
+      background: var(--blue); color: #fff;
+      text-decoration: none; font-family: inherit;
+      transition: opacity .18s, transform .18s;
       display: inline-block;
     }
-    .btn-grad {
-      background: linear-gradient(130deg,#a066ff,#5fa8ff);
-      color: #fff; border: none;
-      box-shadow: 0 4px 32px rgba(110,60,255,0.38);
+    .btn-hero-blue:hover { opacity: .85; transform: scale(1.02); }
+    .btn-hero-ghost {
+      padding: 14px 28px; border-radius: 99px;
+      font-size: 15px; font-weight: 600;
+      background: rgba(255,255,255,0.1); color: var(--t1);
+      text-decoration: none; font-family: inherit;
+      transition: background .18s, transform .18s;
+      display: inline-block;
     }
-    .btn-grad:hover { transform: translateY(-2px); box-shadow: 0 8px 44px rgba(110,60,255,0.55); }
-    .btn-line {
-      background: rgba(255,255,255,0.055); color: var(--text);
-      border: 1px solid rgba(255,255,255,0.18);
-    }
-    .btn-line:hover { background: rgba(255,255,255,0.10); transform: translateY(-1px); }
+    .btn-hero-ghost:hover { background: rgba(255,255,255,0.17); transform: scale(1.02); }
 
-    /* ── Social proof strip ── */
-    .proof-strip {
-      margin-top: 68px;
-      display: flex; gap: 32px; align-items: center; justify-content: center;
+    /* ── NFC demo animation ── */
+    .nfc-demo {
+      margin-top: 72px;
+      position: relative;
+      width: 320px; height: 280px;
+      flex-shrink: 0;
+    }
+
+    /* Phone silhouette */
+    .phone {
+      position: absolute;
+      right: 20px; top: 50%;
+      transform: translateY(-50%);
+      width: 120px; height: 200px;
+      border-radius: 20px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px);
+      display: flex; flex-direction: column;
+      align-items: center; padding-top: 18px; gap: 6px;
+      overflow: hidden;
+    }
+    .phone-notch {
+      width: 36px; height: 6px;
+      border-radius: 99px;
+      background: rgba(255,255,255,0.18);
+    }
+    .phone-screen-content {
+      margin-top: 12px; width: 88%; display: flex; flex-direction: column; gap: 5px;
+      animation: screenReveal 3.6s ease-in-out infinite;
+    }
+    @keyframes screenReveal {
+      0%,30% { opacity: 0; transform: translateY(4px); }
+      45%,90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; }
+    }
+    .phone-row {
+      height: 7px; border-radius: 99px;
+      background: rgba(41,151,255,.5);
+    }
+    .phone-row:nth-child(2) { width: 75%; background: rgba(255,255,255,.2); }
+    .phone-row:nth-child(3) { width: 60%; background: rgba(255,255,255,.15); }
+
+    /* Ring */
+    .nfc-ring {
+      position: absolute;
+      left: 20px; top: 50%;
+      transform: translateY(-50%);
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      border: 6px solid rgba(255,255,255,.25);
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.15), rgba(255,255,255,.04));
+      animation: ringMove 3.6s cubic-bezier(.4,0,.2,1) infinite;
+    }
+    @keyframes ringMove {
+      0%   { transform: translateY(-50%) translateX(0); }
+      35%  { transform: translateY(-50%) translateX(105px); }
+      55%  { transform: translateY(-50%) translateX(95px); }
+      80%  { transform: translateY(-50%) translateX(95px); }
+      100% { transform: translateY(-50%) translateX(0); }
+    }
+
+    /* Ripple on tap */
+    .nfc-ripple {
+      position: absolute;
+      right: 78px; top: 50%; transform: translateY(-50%);
+      width: 0; height: 0;
+      border-radius: 50%;
+      background: rgba(41,151,255,0);
+      border: 2px solid rgba(41,151,255,.6);
+      animation: ripple 3.6s ease-out infinite;
+    }
+    .nfc-ripple:nth-child(2) { animation-delay: .18s; border-color: rgba(41,151,255,.4); }
+    .nfc-ripple:nth-child(3) { animation-delay: .36s; border-color: rgba(41,151,255,.2); }
+    @keyframes ripple {
+      0%,30% { width:0; height:0; opacity:0; margin:0; }
+      35% { opacity: 1; }
+      36%, 72% { width: 80px; height: 80px; margin: -40px 0 0 -40px; opacity:0; }
+      100% { opacity: 0; }
+    }
+
+    /* ── Scroll indicator ── */
+    .scroll-hint {
+      margin-top: 56px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      opacity: 0.4; animation: bounce 2.4s ease-in-out infinite;
+    }
+    .scroll-hint span { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+    .scroll-arrow { width: 1px; height: 28px; background: var(--t2); position: relative; }
+    .scroll-arrow::after {
+      content:''; position:absolute; bottom:0; left:-3px;
+      border: 3.5px solid transparent;
+      border-top-color: var(--t2);
+      transform: rotate(180deg) translateY(-4px);
+    }
+    @keyframes bounce {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(6px); }
+    }
+
+    /* ── Statement section ── */
+    .statement {
+      padding: 120px 24px;
+      text-align: center;
+      border-top: 1px solid var(--line);
+      background: var(--bg2);
+    }
+    .statement-label {
+      font-size: 12px; font-weight: 600; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--blue);
+      margin-bottom: 24px;
+    }
+    .statement h2 {
+      font-size: clamp(34px, 6vw, 72px);
+      font-weight: 700; letter-spacing: -2.5px; line-height: 1.05;
+      max-width: 800px; margin: 0 auto 24px;
+    }
+    .statement p {
+      font-size: clamp(16px, 1.8vw, 19px);
+      color: var(--t2); max-width: 520px;
+      margin: 0 auto; line-height: 1.65;
+    }
+
+    /* ── Steps strip ── */
+    .steps-strip {
+      padding: 64px 40px;
+      display: flex; justify-content: center; gap: 0;
+      border-top: 1px solid var(--line);
+      background: var(--bg);
       flex-wrap: wrap;
     }
-    .proof-item {
+    .step-item {
+      display: flex; align-items: center; gap: 0;
+    }
+    .step-block {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 0 36px; text-align: center; gap: 10px;
+    }
+    .step-num {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      color: var(--blue); text-transform: uppercase;
+    }
+    .step-text {
+      font-size: 17px; font-weight: 600; color: var(--t1); letter-spacing: -0.2px;
+    }
+    .step-sub {
+      font-size: 13px; color: var(--t3); line-height: 1.5;
+    }
+    .step-divider {
+      width: 1px; height: 40px; background: var(--line);
+      flex-shrink: 0;
+    }
+    @media(max-width:640px) {
+      .steps-strip { gap: 32px; padding: 48px 24px; }
+      .step-divider { display: none; }
+      .step-item { flex-direction: column; }
+      .step-block { padding: 0; }
+    }
+
+    /* ── Feature split sections ── */
+    .feature-split {
+      padding: 100px 0;
+      border-top: 1px solid var(--line);
+    }
+    .feature-split .inner {
+      max-width: 1080px; margin: 0 auto; padding: 0 40px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 80px; align-items: center;
+    }
+    .feature-split.rev .inner { direction: rtl; }
+    .feature-split.rev .inner > * { direction: ltr; }
+
+    .feat-tag {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 18px;
+    }
+    .feat-tag.purple { color: #bf5af2; }
+    .feature-split h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 700; letter-spacing: -1.5px; line-height: 1.08;
+      margin-bottom: 18px;
+    }
+    .feature-split p {
+      font-size: 16px; line-height: 1.72; color: var(--t2);
+      margin-bottom: 28px;
+    }
+    .feat-detail {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .feat-row {
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .feat-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--blue); flex-shrink: 0; margin-top: 7px;
+    }
+    .feat-dot.purple { background: #bf5af2; }
+    .feat-row span { font-size: 14px; color: var(--t2); line-height: 1.55; }
+
+    @media(max-width:720px) {
+      .feature-split .inner { grid-template-columns: 1fr; gap: 40px; direction: ltr !important; }
+      .feature-split.rev .inner { direction: ltr; }
+    }
+
+    /* ── Visual panels ── */
+    .vis-panel {
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: var(--bg3);
+      padding: 40px 32px;
+      min-height: 320px;
+      display: flex; flex-direction: column; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .vis-panel::after {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(41,151,255,.07), transparent 70%);
+    }
+    .vis-panel.purple-glow::after {
+      background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(191,90,242,.09), transparent 70%);
+    }
+
+    /* Direct mode visual */
+    .url-display {
+      font-family: "SF Mono", ui-monospace, monospace;
+      font-size: 14px; color: rgba(100,220,140,0.9);
+      background: rgba(0,0,0,0.4);
+      padding: 14px 18px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.07);
+      margin-top: 20px;
+      position: relative; z-index: 1;
+    }
+    .url-cursor {
+      display: inline-block; width: 2px; height: 1em;
+      background: rgba(100,220,140,0.8);
+      margin-left: 2px; vertical-align: text-bottom;
+      animation: blink .8s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+
+    .vis-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--t3); position: relative; z-index: 1;
+    }
+    .vis-title {
+      font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+      margin: 10px 0; position: relative; z-index: 1;
+    }
+    .vis-sub { font-size: 13px; color: var(--t2); position: relative; z-index: 1; }
+
+    /* Display mode visual — mini link page */
+    .mini-page {
+      position: relative; z-index: 1;
+      margin-top: 20px;
+      border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.5);
+      padding: 20px 16px;
+    }
+    .mini-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(135deg, #2997ff, #bf5af2);
+      margin: 0 auto 10px;
+    }
+    .mini-name { text-align:center; font-weight:700; font-size:14px; margin-bottom:4px; }
+    .mini-bio  { text-align:center; font-size:12px; color:var(--t3); margin-bottom:14px; }
+    .mini-links { display:flex; flex-direction:column; gap:8px; }
+    .mini-link {
+      padding: 9px 14px; border-radius: 9px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.09);
+      font-size: 13px; font-weight: 500; color: var(--t1);
       display: flex; align-items: center; gap: 8px;
-      font-size: 13px; color: var(--mute);
     }
-    .proof-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(160,120,255,0.6); flex-shrink: 0; }
+    .mini-link-dot { width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0; }
+    .mini-link:nth-child(2) .mini-link-dot { background:#bf5af2; }
+    .mini-link:nth-child(3) .mini-link-dot { background:#ff9f0a; }
 
-    /* ════ PROBLEM ════ */
-    .problem { }
-    .prob-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media(max-width:580px){ .prob-grid { grid-template-columns: 1fr; } }
-    .prob-card { border-radius: var(--r); padding: 28px 24px; }
-    .prob-card .label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; }
-    .label-bad  { color: rgba(255,100,100,0.7); }
-    .label-good { color: rgba(100,220,140,0.8); }
-    .prob-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.3px; }
-    .prob-card p  { font-size: 13px; line-height: 1.7; color: var(--mute); }
-    .prob-steps { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
-    .prob-step { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--mute); }
-    .prob-step .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-    .dot-bad  { background: rgba(255,100,100,0.6); }
-    .dot-good { background: rgba(100,220,140,0.7); }
+    /* ── Form factors ── */
+    .form-factors {
+      padding: 100px 0;
+      border-top: 1px solid var(--line);
+      background: var(--bg2);
+    }
+    .form-factors .header {
+      text-align: center; padding: 0 24px; margin-bottom: 60px;
+    }
+    .form-factors h2 {
+      font-size: clamp(28px,5vw,56px);
+      font-weight: 700; letter-spacing: -2px; line-height: 1.06;
+      margin: 16px 0 14px;
+    }
+    .form-factors p { font-size: 17px; color: var(--t2); max-width: 440px; margin: 0 auto; }
 
-    /* ════ FOR WHOM ════ */
-    .forwhom { }
-    .fw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media(max-width:580px){ .fw-grid { grid-template-columns: 1fr; } }
-    .fw-card { border-radius: var(--r); padding: 36px 32px; position: relative; overflow: hidden; }
+    .ff-scroll {
+      display: flex; gap: 16px; padding: 0 40px;
+      overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ff-scroll::-webkit-scrollbar { display: none; }
+
+    .ff-card {
+      flex-shrink: 0; scroll-snap-align: start;
+      width: 220px; border-radius: 22px;
+      border: 1px solid var(--line);
+      background: var(--bg3);
+      padding: 32px 24px;
+      display: flex; flex-direction: column; gap: 14px;
+      transition: transform .28s cubic-bezier(.22,.61,.36,1), border-color .28s;
+      cursor: default;
+    }
+    .ff-card:hover {
+      transform: scale(1.03);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .ff-icon {
+      font-size: 40px; line-height: 1;
+    }
+    .ff-card h3 { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .ff-card p  { font-size: 13px; line-height: 1.6; color: var(--t2); }
+
+    /* Spacer at end of scroll */
+    .ff-spacer { flex-shrink: 0; width: 16px; }
+
+    /* ── Problem vs Solution (comparison) ── */
+    .compare {
+      padding: 100px 0;
+      border-top: 1px solid var(--line);
+    }
+    .compare .inner {
+      max-width: 1080px; margin: 0 auto; padding: 0 40px;
+    }
+    .compare .header { text-align: center; margin-bottom: 56px; }
+    .compare h2 {
+      font-size: clamp(28px,5vw,56px);
+      font-weight: 700; letter-spacing: -2px; margin: 16px 0 14px;
+    }
+    .cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:580px){ .cmp-grid { grid-template-columns:1fr; } }
+
+    .cmp-card {
+      border-radius: 22px; padding: 36px 32px;
+      border: 1px solid var(--line);
+      position: relative; overflow: hidden;
+    }
+    .cmp-card.bad  { background: rgba(255,59,48,.04); border-color: rgba(255,59,48,.14); }
+    .cmp-card.good { background: rgba(52,199,89,.04); border-color: rgba(52,199,89,.14); }
+
+    .cmp-badge {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 99px; margin-bottom: 20px;
+    }
+    .cmp-badge.bad  { background:rgba(255,59,48,.12); color:rgba(255,100,100,.9); border:1px solid rgba(255,59,48,.2); }
+    .cmp-badge.good { background:rgba(52,199,89,.12); color:rgba(100,220,120,.9); border:1px solid rgba(52,199,89,.2); }
+
+    .cmp-card h3 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 8px; }
+    .cmp-card .sub { font-size: 14px; color: var(--t2); margin-bottom: 24px; line-height: 1.5; }
+    .cmp-steps { display: flex; flex-direction: column; gap: 10px; }
+    .cmp-step { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--t2); }
+    .cmp-step-dot { width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px; }
+    .cmp-step-dot.bad  { background:rgba(255,59,48,.7); }
+    .cmp-step-dot.good { background:rgba(52,199,89,.7); }
+
+    /* ── For whom ── */
+    .for-whom {
+      padding: 100px 0;
+      border-top: 1px solid var(--line);
+      background: var(--bg2);
+    }
+    .for-whom .inner {
+      max-width: 1080px; margin: 0 auto; padding: 0 40px;
+    }
+    .for-whom .header { text-align: center; margin-bottom: 56px; }
+    .for-whom h2 {
+      font-size: clamp(28px,5vw,56px);
+      font-weight: 700; letter-spacing: -2px; margin: 16px 0 14px;
+    }
+    .for-whom p.lead { font-size:17px; color:var(--t2); max-width:440px; margin:0 auto; }
+
+    .fw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:580px){ .fw-grid { grid-template-columns:1fr; } }
+
+    .fw-card {
+      border-radius: 22px; padding: 40px 36px;
+      border: 1px solid var(--line);
+      background: var(--bg3);
+      position: relative; overflow: hidden;
+      transition: border-color .2s;
+    }
+    .fw-card:hover { border-color: rgba(255,255,255,0.18); }
     .fw-card::before {
-      content:''; position:absolute; top:-60px; right:-60px;
-      width:200px;height:200px;border-radius:50%;
-      background:rgba(255,255,255,0.03);
+      content: '';
+      position: absolute; top:-80px; right:-80px;
+      width: 240px; height: 240px; border-radius: 50%;
+      background: rgba(41,151,255,.04);
+      pointer-events: none;
     }
-    .fw-icon { font-size: 38px; margin-bottom: 20px; }
-    .fw-card h3 { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 12px; }
-    .fw-card p  { font-size: 14px; line-height: 1.7; color: var(--mute); margin-bottom: 20px; }
+    .fw-num {
+      font-size: 60px; font-weight: 800; letter-spacing: -3px;
+      color: rgba(255,255,255,0.05);
+      position: absolute; top: 18px; right: 26px;
+      line-height: 1; pointer-events: none;
+      font-variant-numeric: tabular-nums;
+    }
+    .fw-icon { font-size: 42px; margin-bottom: 20px; }
+    .fw-card h3 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 12px; }
+    .fw-card p  { font-size: 14px; line-height: 1.72; color: var(--t2); margin-bottom: 22px; }
     .fw-tags { display: flex; flex-wrap: wrap; gap: 8px; }
     .fw-tag {
-      font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 99px;
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
-      color: var(--mute2);
+      font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 99px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: var(--t3);
     }
 
-    /* ════ FORM FACTORS ════ */
-    .forms { }
-    .ff-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 16px; }
-    .ff-card {
-      border-radius: var(--r); padding: 28px 20px;
-      display: flex; flex-direction: column; align-items: flex-start; gap: 14px;
-      transition: transform .22s, box-shadow .22s; cursor: default;
-    }
-    .ff-card:hover { transform: translateY(-5px); box-shadow: 0 18px 50px rgba(0,0,0,0.32); }
-    .ff-card .ff-icon { font-size: 34px; }
-    .ff-card h3 { font-size: 16px; font-weight: 700; }
-    .ff-card p  { font-size: 12px; line-height: 1.6; color: var(--mute); }
-
-    /* ════ MODES ════ */
-    .modes { }
-    .mode-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media(max-width:580px){ .mode-row{ grid-template-columns:1fr; } }
-    .mode-card { border-radius: var(--r); padding: 32px 28px; }
-    .mode-pill {
-      display: inline-flex; align-items: center; gap: 7px;
-      font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-      padding: 5px 12px; border-radius: 99px; margin-bottom: 18px;
-    }
-    .pill-d { background:rgba(120,80,255,0.18); border:1px solid rgba(120,80,255,0.28); color:#c0a0ff; }
-    .pill-p { background:rgba(50,130,255,0.18); border:1px solid rgba(50,130,255,0.28); color:#90c0ff; }
-    .mdot { width:6px;height:6px;border-radius:50%; }
-    .pill-d .mdot { background:#a066ff; }
-    .pill-p .mdot { background:#5fa8ff; }
-    .mode-card h3 { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 10px; }
-    .mode-card p  { font-size: 13px; line-height: 1.7; color: var(--mute); }
-    .mode-demo {
-      margin-top: 20px; padding: 14px 16px; border-radius: 12px;
-      background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.07);
-      font-size: 13px; font-family: 'SF Mono', ui-monospace, monospace;
-    }
-
-    /* ════ CTA BAND ════ */
+    /* ── CTA band ── */
     .cta-band {
-      position: relative; z-index: 1;
-      padding: 100px 24px; text-align: center; border-top: 1px solid var(--line);
+      padding: 120px 24px;
+      text-align: center;
+      border-top: 1px solid var(--line);
+      position: relative; overflow: hidden;
+    }
+    .cta-band::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 70% at 50% 50%, rgba(41,151,255,.08), transparent 70%);
+      pointer-events: none;
+    }
+    .cta-band .eyebrow {
+      font-size: 12px; font-weight: 600; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--blue);
+      margin-bottom: 24px;
     }
     .cta-band h2 {
-      font-size: clamp(34px,5.5vw,68px); font-weight: 900; letter-spacing: -2px; line-height: 1.0;
-      background: linear-gradient(155deg,#fff 0%,rgba(200,160,255,0.9) 55%,rgba(110,175,255,0.85) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-bottom: 16px;
+      font-size: clamp(38px,7vw,80px);
+      font-weight: 700; letter-spacing: -3px; line-height: 1.0;
+      margin-bottom: 16px; position: relative; z-index: 1;
     }
-    .cta-band p { font-size: 16px; color: var(--mute); margin-bottom: 40px; }
+    .cta-band p {
+      font-size: 18px; color: var(--t2); margin-bottom: 44px;
+      position: relative; z-index: 1;
+    }
+    .cta-band .btns {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+      position: relative; z-index: 1;
+    }
+    .btn-cta-blue {
+      padding: 16px 36px; border-radius: 99px;
+      font-size: 16px; font-weight: 600;
+      background: var(--blue); color: #fff;
+      text-decoration: none; font-family: inherit;
+      transition: opacity .18s, transform .18s;
+      display: inline-block;
+    }
+    .btn-cta-blue:hover { opacity: .85; transform: scale(1.02); }
+    .btn-cta-ghost {
+      padding: 16px 36px; border-radius: 99px;
+      font-size: 16px; font-weight: 600;
+      background: rgba(255,255,255,0.1); color: var(--t1);
+      text-decoration: none; font-family: inherit;
+      transition: background .18s, transform .18s;
+      display: inline-block;
+    }
+    .btn-cta-ghost:hover { background: rgba(255,255,255,0.16); transform: scale(1.02); }
 
-    /* ════ FOOTER ════ */
+    /* ── Footer ── */
     footer {
-      border-top: 1px solid var(--line); padding: 28px 40px;
+      border-top: 1px solid var(--line);
+      padding: 32px 40px;
       display: flex; align-items: center; justify-content: space-between;
       position: relative; z-index: 1;
     }
     .foot-logo {
-      font-size: 15px; font-weight: 800; text-decoration: none;
-      background: linear-gradient(130deg,#c8a0ff,#7eb8ff);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      font-size: 15px; font-weight: 700; letter-spacing: -0.2px;
+      text-decoration: none; color: var(--t2);
     }
-    footer p { font-size: 12px; color: rgba(255,255,255,0.2); }
-    @media(max-width:600px){ footer{flex-direction:column;gap:8px;text-align:center;} nav{padding:14px 20px;} }
+    footer p { font-size: 12px; color: var(--t3); }
+    @media(max-width:580px){
+      footer { flex-direction:column; gap:10px; text-align:center; padding:28px 24px; }
+      nav { padding: 0 16px; }
+      .feature-split .inner, .compare .inner, .for-whom .inner { padding: 0 20px; }
+      .ff-scroll { padding: 0 20px; }
+    }
+
+    /* Section eyebrow shared */
+    .sec-eyebrow {
+      font-size: 12px; font-weight: 600; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--blue);
+    }
+    .sec-eyebrow.purple { color: #bf5af2; }
   </style>
 </head>
 <body>
-
-<div class="blobs"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
 
 <!-- Nav -->
 <nav>
   <a class="nav-logo" href="/">TapTag</a>
   <div class="nav-r" id="nav-links">
     <a class="nb nb-ghost" href="/login">Log In</a>
-    <a class="nb nb-solid" href="/register">Sign Up Free</a>
+    <a class="nb nb-blue"  href="/register">Get Started</a>
   </div>
 </nav>
 
-<!-- Hero -->
-<section class="hero" style="border:none;">
-  <div class="hero-label">Rings · Cards · Badges · Keychains</div>
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="hero-eyebrow reveal">NFC Smart Accessories</div>
 
-  <h1>A faster way to<br><em>exchange contacts.</em></h1>
+  <h1 class="reveal reveal-d1">
+    One tap.<br>
+    <span class="line2">Every link.</span>
+  </h1>
 
-  <p class="hero-sub">Tap your NFC accessory against someone's phone. Your LinkedIn, portfolio, or any link appears instantly — no app, no searching, no paper cards.</p>
+  <p class="hero-sub reveal reveal-d2">
+    Your ring, card, or badge shares your LinkedIn, portfolio, and socials the instant it touches someone's phone. No app. No searching. Just tap.
+  </p>
 
-  <div class="hero-ctas" id="hero-ctas">
-    <a class="btn-big btn-grad" href="/register">Get Started Free</a>
-    <a class="btn-big btn-line" href="/login">Log In</a>
+  <div class="hero-ctas reveal reveal-d3" id="hero-ctas">
+    <a class="btn-hero-blue" href="/register">Get Started Free</a>
+    <a class="btn-hero-ghost" href="/login">Log In</a>
   </div>
 
-  <div class="proof-strip">
-    <div class="proof-item"><span class="proof-dot"></span>Works with any iPhone or Android</div>
-    <div class="proof-item"><span class="proof-dot"></span>No app needed for visitors</div>
-    <div class="proof-item"><span class="proof-dot"></span>Update links anytime</div>
+  <!-- Animated NFC demo -->
+  <div class="nfc-demo reveal reveal-d4">
+    <div class="nfc-ring"></div>
+    <div class="nfc-ripple"></div>
+    <div class="nfc-ripple"></div>
+    <div class="nfc-ripple"></div>
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="phone-screen-content">
+        <div class="phone-row" style="width:70%;"></div>
+        <div class="phone-row"></div>
+        <div class="phone-row"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-hint reveal reveal-d5">
+    <span>Scroll</span>
+    <div class="scroll-arrow"></div>
   </div>
 </section>
 
-<!-- Problem / Solution -->
-<section class="problem">
-  <div class="wrap sec-pad">
-    <div class="eyebrow">The problem with networking</div>
-    <h2 class="sec-title">Exchanging contacts should only take one step.</h2>
-    <div class="prob-grid">
-      <div class="prob-card g">
-        <div class="label label-bad">Before TapTag</div>
+<!-- ── Steps strip ── -->
+<div class="steps-strip">
+  <div class="step-item">
+    <div class="step-block reveal">
+      <div class="step-num">01</div>
+      <div class="step-text">Tap</div>
+      <div class="step-sub">Ring meets phone</div>
+    </div>
+    <div class="step-divider"></div>
+  </div>
+  <div class="step-item">
+    <div class="step-block reveal reveal-d1">
+      <div class="step-num">02</div>
+      <div class="step-text">Profile loads</div>
+      <div class="step-sub">Instant, no app needed</div>
+    </div>
+    <div class="step-divider"></div>
+  </div>
+  <div class="step-item">
+    <div class="step-block reveal reveal-d2">
+      <div class="step-num">03</div>
+      <div class="step-text">Connected</div>
+      <div class="step-sub">2 seconds. Done.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Statement ── -->
+<section class="statement">
+  <div class="sec-eyebrow reveal">The problem with networking</div>
+  <h2 class="reveal reveal-d1">Exchanging contacts<br>should only take one step.</h2>
+  <p class="reveal reveal-d2">Searching LinkedIn, spelling names, scrolling past wrong profiles — every connection costs you both time. There's a better way.</p>
+</section>
+
+<!-- ── Comparison ── -->
+<section class="compare">
+  <div class="inner">
+    <div class="cmp-grid">
+      <div class="cmp-card bad reveal">
+        <div class="cmp-badge bad">Before TapTag</div>
         <h3>The old handshake</h3>
-        <p>Every connection costs you both time — and half those paper cards end up in a bin.</p>
-        <div class="prob-steps">
-          <div class="prob-step"><span class="dot dot-bad"></span>"What's your LinkedIn?"</div>
-          <div class="prob-step"><span class="dot dot-bad"></span>Open app, tap search</div>
-          <div class="prob-step"><span class="dot dot-bad"></span>Spell out their full name</div>
-          <div class="prob-step"><span class="dot dot-bad"></span>10 results, wrong person</div>
-          <div class="prob-step"><span class="dot dot-bad"></span>Finally connected — 45 seconds later</div>
+        <p class="sub">Half those paper cards end up in a bin. The rest get lost in your camera roll.</p>
+        <div class="cmp-steps">
+          <div class="cmp-step"><span class="cmp-step-dot bad"></span>"What's your LinkedIn?"</div>
+          <div class="cmp-step"><span class="cmp-step-dot bad"></span>Open app, tap search</div>
+          <div class="cmp-step"><span class="cmp-step-dot bad"></span>Spell their full name</div>
+          <div class="cmp-step"><span class="cmp-step-dot bad"></span>10 results, wrong person</div>
+          <div class="cmp-step"><span class="cmp-step-dot bad"></span>Finally connected — 45 seconds later</div>
         </div>
       </div>
-      <div class="prob-card g">
-        <div class="label label-good">With TapTag</div>
+      <div class="cmp-card good reveal reveal-d1">
+        <div class="cmp-badge good">With TapTag</div>
         <h3>One tap. Done.</h3>
-        <p>Your links appear on their screen the moment your tag touches their phone.</p>
-        <div class="prob-steps">
-          <div class="prob-step"><span class="dot dot-good"></span>Tap ring / card / badge</div>
-          <div class="prob-step"><span class="dot dot-good"></span>Profile loads instantly</div>
-          <div class="prob-step"><span class="dot dot-good"></span>They choose what to follow</div>
-          <div class="prob-step"><span class="dot dot-good"></span>No app. No friction. 2 seconds.</div>
+        <p class="sub">Your profile appears on their screen the moment your tag touches their phone.</p>
+        <div class="cmp-steps">
+          <div class="cmp-step"><span class="cmp-step-dot good"></span>Tap your ring or card</div>
+          <div class="cmp-step"><span class="cmp-step-dot good"></span>Profile loads instantly</div>
+          <div class="cmp-step"><span class="cmp-step-dot good"></span>They choose what to follow</div>
+          <div class="cmp-step"><span class="cmp-step-dot good"></span>No app. No friction. 2 seconds.</div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- For whom -->
-<section class="forwhom">
-  <div class="wrap sec-pad">
-    <div class="eyebrow">Who it's for</div>
-    <h2 class="sec-title">From solo founders to full conferences.</h2>
+<!-- ── Feature: Direct mode ── -->
+<section class="feature-split">
+  <div class="inner">
+    <div class="reveal">
+      <div class="feat-tag">Direct Mode</div>
+      <h2>One tap,<br>one destination.</h2>
+      <p>Set a single URL. Tap the tag and their phone opens it instantly — no intermediate page, no friction.</p>
+      <div class="feat-detail">
+        <div class="feat-row"><span class="feat-dot"></span><span>LinkedIn, GitHub, portfolio, booking page — anything</span></div>
+        <div class="feat-row"><span class="feat-dot"></span><span>Change your destination URL anytime from the app</span></div>
+        <div class="feat-row"><span class="feat-dot"></span><span>Instant redirect, no visible loading screen</span></div>
+        <div class="feat-row"><span class="feat-dot"></span><span>Switch to Display mode with one tap</span></div>
+      </div>
+    </div>
+    <div class="vis-panel reveal reveal-d2">
+      <div class="vis-label">Direct mode</div>
+      <div class="vis-title">linkedin.com/in/you</div>
+      <div class="vis-sub">Tap → opens immediately in browser</div>
+      <div class="url-display">
+        → linkedin.com/in/yourname<span class="url-cursor"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Feature: Display mode ── -->
+<section class="feature-split rev">
+  <div class="inner">
+    <div class="reveal">
+      <div class="feat-tag purple">Display Mode</div>
+      <h2>One tap,<br>all your links.</h2>
+      <p>A beautiful micro-page loads with everything — LinkedIn, portfolio, Cal.com, socials. Visitors pick what they want.</p>
+      <div class="feat-detail">
+        <div class="feat-row"><span class="feat-dot purple"></span><span>Add, remove, or reorder links anytime</span></div>
+        <div class="feat-row"><span class="feat-dot purple"></span><span>Like Linktree — but it lives in your ring</span></div>
+        <div class="feat-row"><span class="feat-dot purple"></span><span>No app required for visitors</span></div>
+        <div class="feat-row"><span class="feat-dot purple"></span><span>Analytics: see which links get clicked</span></div>
+      </div>
+    </div>
+    <div class="vis-panel purple-glow reveal reveal-d2">
+      <div class="vis-label">Display mode</div>
+      <div class="mini-page">
+        <div class="mini-avatar"></div>
+        <div class="mini-name">Alex Chen</div>
+        <div class="mini-bio">Product designer · SF</div>
+        <div class="mini-links">
+          <div class="mini-link"><span class="mini-link-dot"></span>LinkedIn</div>
+          <div class="mini-link"><span class="mini-link-dot"></span>Portfolio</div>
+          <div class="mini-link"><span class="mini-link-dot"></span>Cal.com · Book a call</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Form factors ── -->
+<section class="form-factors">
+  <div class="header">
+    <div class="sec-eyebrow reveal">Hardware</div>
+    <h2 class="reveal reveal-d1">Any shape.<br>Any style.</h2>
+    <p class="reveal reveal-d2">One chip, every form factor. Buy once — update links forever.</p>
+  </div>
+  <div class="ff-scroll">
+    <div class="ff-card reveal">
+      <div class="ff-icon">💍</div>
+      <h3>Ring</h3>
+      <p>Titanium or ceramic. The most effortless share — just extend your hand.</p>
+    </div>
+    <div class="ff-card reveal reveal-d1">
+      <div class="ff-icon">💳</div>
+      <h3>Card</h3>
+      <p>Metal or PVC. Drop-in replacement for your paper business card.</p>
+    </div>
+    <div class="ff-card reveal reveal-d2">
+      <div class="ff-icon">🏷️</div>
+      <h3>Badge</h3>
+      <p>Built into your event badge. Every attendee becomes instantly discoverable.</p>
+    </div>
+    <div class="ff-card reveal reveal-d3">
+      <div class="ff-icon">🔑</div>
+      <h3>Keychain</h3>
+      <p>Always in your pocket. Waterproof, works through most phone cases.</p>
+    </div>
+    <div class="ff-card reveal reveal-d4">
+      <div class="ff-icon">✦</div>
+      <h3>Custom</h3>
+      <p>Have a specific shape? We do custom form factors for events and brands.</p>
+    </div>
+    <div class="ff-spacer"></div>
+  </div>
+</section>
+
+<!-- ── For whom ── -->
+<section class="for-whom">
+  <div class="inner">
+    <div class="header">
+      <div class="sec-eyebrow reveal">Who it's for</div>
+      <h2 class="reveal reveal-d1">From solo founders<br>to full conferences.</h2>
+      <p class="lead reveal reveal-d2">Whether you're handing out 5 or 5,000, TapTag scales with you.</p>
+    </div>
     <div class="fw-grid">
-      <div class="fw-card g">
+      <div class="fw-card reveal">
+        <div class="fw-num">01</div>
         <div class="fw-icon">🎪</div>
         <h3>Event Organizers</h3>
         <p>Order branded TapTags in bulk for your entire attendee list. Each person manages their own profile — you just hand out the hardware. Perfect for conferences, summits, and trade shows.</p>
@@ -311,7 +858,8 @@
           <span class="fw-tag">Event-ready</span>
         </div>
       </div>
-      <div class="fw-card g">
+      <div class="fw-card reveal reveal-d1">
+        <div class="fw-num">02</div>
         <div class="fw-icon">🚀</div>
         <h3>Individuals & Startups</h3>
         <p>Whether you're a designer at a portfolio night or a founder at Demo Day — one tap shares your LinkedIn, website, or anything else. Update your links as your story evolves.</p>
@@ -326,68 +874,15 @@
   </div>
 </section>
 
-<!-- Form factors -->
-<section class="forms">
-  <div class="wrap sec-pad">
-    <div class="eyebrow">Form factors</div>
-    <h2 class="sec-title">Any shape. Any style.</h2>
-    <div class="ff-grid">
-      <div class="ff-card g">
-        <div class="ff-icon">💍</div>
-        <h3>Ring</h3>
-        <p>Titanium or ceramic. The most effortless share — just extend your hand.</p>
-      </div>
-      <div class="ff-card g">
-        <div class="ff-icon">💳</div>
-        <h3>Card</h3>
-        <p>Metal or PVC. Drop-in replacement for your paper business card.</p>
-      </div>
-      <div class="ff-card g">
-        <div class="ff-icon">🏷️</div>
-        <h3>Badge / Lanyard</h3>
-        <p>Built into your event badge. Every attendee becomes instantly discoverable.</p>
-      </div>
-      <div class="ff-card g">
-        <div class="ff-icon">🔑</div>
-        <h3>Keychain</h3>
-        <p>Always in your pocket. Waterproof and works through most phone cases.</p>
-      </div>
-      <div class="ff-card g">
-        <div class="ff-icon">✨</div>
-        <h3>Custom</h3>
-        <p>Have a specific shape in mind? Reach out — we do custom form factors for events.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Modes -->
-<section class="modes">
-  <div class="wrap sec-pad">
-    <div class="eyebrow">Two modes</div>
-    <h2 class="sec-title">Control what they see.</h2>
-    <div class="mode-row">
-      <div class="mode-card g">
-        <div class="mode-pill pill-d"><span class="mdot"></span>Direct</div>
-        <h3>One tap, one destination.</h3>
-        <p>Set a single URL. Tap the tag → phone opens it instantly. Perfect when you know exactly where you want them to land.</p>
-        <div class="mode-demo" style="color:rgba(180,220,140,0.85);">tap → linkedin.com/in/yourname</div>
-      </div>
-      <div class="mode-card g">
-        <div class="mode-pill pill-p"><span class="mdot"></span>Display</div>
-        <h3>One tap, all your links.</h3>
-        <p>A micro-page loads with all your links — GitHub, portfolio, socials, booking. Visitors pick what they want. Like a Linktree that lives in your ring.</p>
-        <div class="mode-demo" style="color:rgba(140,180,255,0.85);">tap → LinkedIn · Portfolio · Cal.com</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
+<!-- ── CTA ── -->
 <div class="cta-band">
-  <h2>Ready to tap?</h2>
-  <p>Free to start. No credit card required.</p>
-  <a class="btn-big btn-grad" href="/register" style="display:inline-block;">Create your TapTag →</a>
+  <div class="eyebrow reveal">Start for free</div>
+  <h2 class="reveal reveal-d1">Ready to tap?</h2>
+  <p class="reveal reveal-d2">No credit card required.</p>
+  <div class="btns reveal reveal-d3" id="cta-btns">
+    <a class="btn-cta-blue"  href="/register">Create your TapTag →</a>
+    <a class="btn-cta-ghost" href="/login">Log In</a>
+  </div>
 </div>
 
 <!-- Footer -->
@@ -397,21 +892,32 @@
 </footer>
 
 <script>
+  /* ── Scroll reveal ── */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); observer.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  /* ── Auth-aware nav ── */
   (async () => {
-    const res = await fetch('/tags/my', { credentials: 'include' });
-    if (res.ok) {
-      document.getElementById('nav-links').innerHTML = `
-        <a class="nb nb-ghost" href="/my-tags">My Tags</a>
-        <button class="nb nb-solid" onclick="logout()">Log Out</button>`;
-      document.getElementById('hero-ctas').innerHTML = `
-        <a class="btn-big btn-grad" href="/my-tags">Go to My Tags →</a>`;
-    }
+    try {
+      const res = await fetch('/tags/my', { credentials: 'include' });
+      if (res.ok) {
+        document.getElementById('nav-links').innerHTML = `
+          <a class="nb nb-ghost" href="/my-tags">My Tags</a>
+          <button class="nb nb-blue" onclick="logout()">Log Out</button>`;
+        document.getElementById('hero-ctas').innerHTML = `
+          <a class="btn-hero-blue" href="/my-tags">Go to My Tags →</a>`;
+        const cta = document.getElementById('cta-btns');
+        if (cta) cta.innerHTML = `<a class="btn-cta-blue" href="/my-tags">Go to My Tags →</a>`;
+      }
+    } catch(e) {}
   })();
+
   async function logout() {
     await fetch('/users/logout', { method: 'POST' });
     window.location.reload();
   }
 </script>
-
 </body>
 </html>
