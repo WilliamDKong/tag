@@ -148,10 +148,15 @@
     </button>
     <div class="error-banner" id="error-banner"></div>
 
-    <p class="switch-link">Already have an account? <a href="/login">Log in</a></p>
+    <p class="switch-link">Already have an account? <a href="/login" id="login-link">Log in</a></p>
   </div>
 
   <script>
+    // Preserve ?bind param when switching to login
+    (function() {
+      const bind = new URLSearchParams(location.search).get('bind');
+      if (bind) document.getElementById('login-link').href = `/login?bind=${bind}`;
+    })();
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const SPECIAL_RE = /[0-9!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?]/;
 
@@ -262,7 +267,13 @@
         });
 
         if (res.ok) {
-          window.location.href = '/my-tags';
+          const bind = new URLSearchParams(location.search).get('bind');
+          if (bind) {
+            await fetch(`/tags/bind/${bind}`, { method: 'POST' });
+            window.location.href = `/tags/dashboard/${bind}`;
+          } else {
+            window.location.href = '/my-tags';
+          }
         } else {
           const data = await res.json();
           let msg = data.detail || 'Something went wrong. Please try again.';

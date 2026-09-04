@@ -90,10 +90,15 @@
     </button>
     <div class="error-banner" id="error-banner"></div>
 
-    <p class="switch-link">Don't have an account? <a href="/register">Sign up free</a></p>
+    <p class="switch-link">Don't have an account? <a href="/register" id="register-link">Sign up free</a></p>
   </div>
 
   <script>
+    // Preserve ?bind param when switching to register
+    (function() {
+      const bind = new URLSearchParams(location.search).get('bind');
+      if (bind) document.getElementById('register-link').href = `/register?bind=${bind}`;
+    })();
     document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 
     function toggleVis() {
@@ -125,7 +130,13 @@
         });
 
         if (res.ok) {
-          window.location.href = '/my-tags';
+          const bind = new URLSearchParams(location.search).get('bind');
+          if (bind) {
+            await fetch(`/tags/bind/${bind}`, { method: 'POST' });
+            window.location.href = `/tags/dashboard/${bind}`;
+          } else {
+            window.location.href = '/my-tags';
+          }
         } else {
           const data = await res.json();
           let msg = data.detail || 'Something went wrong.';
