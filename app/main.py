@@ -28,6 +28,11 @@ async def activate_page(id: str):
     return render("activate.html", tag_id=id)
 
 
+@app.get("/contact")
+async def contact_page():
+    return render("contact.html")
+
+
 @app.get("/login")
 async def login_page():
     return render("login.html")
