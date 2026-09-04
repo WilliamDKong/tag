@@ -652,49 +652,28 @@
   function renderDraggable() {
     const area = document.getElementById('links-area');
     const ordered = getOrderedLinks();
-
-    // Initials for avatar
-    const src = currentNickname || TAG_ID;
-    const words = src.trim().split(/\s+/);
-    const initials = words.length >= 2
-      ? (words[0][0] + words[words.length-1][0]).toUpperCase()
-      : src.slice(0,2).toUpperCase();
-
-    const bioHtml = currentBio
-      ? `<div class="pv-bio">${esc(currentBio)}</div>`
-      : `<div class="pv-bio empty">Add a description…</div>`;
-
-    const cardsHtml = ordered.length
-      ? ordered.map(l=>`
-          <div class="pv-card" data-id="${l.id}" id="item-${l.id}">
-            <span class="g-drag" style="color:rgba(255,255,255,0.18);cursor:grab;font-size:15px;flex-shrink:0;">⠿</span>
-            ${pvIcon(l.url)}
-            <span class="pv-label">${esc(l.label)}</span>
-            <span class="pv-arrow">›</span>
+    if (!ordered.length) { area.innerHTML = '<p class="sh">Links</p><p class="empty">No links yet.</p>'; return; }
+    area.innerHTML = `
+      <p class="sh">Links</p>
+      <div class="grouped lg gap" id="dlist">
+        ${ordered.map(l=>`
+          <div class="g-row" data-id="${l.id}" id="item-${l.id}" style="cursor:grab;">
+            <span class="g-drag">⠿</span>
+            ${rowIcon(l.url)}
+            <div class="g-info"><div class="g-lbl">${esc(l.label)}</div><div class="g-url">${esc(l.url)}</div></div>
             <button class="g-btn" onclick="startEdit(${l.id},${JSON.stringify(l.label)},${JSON.stringify(l.url)})">✎</button>
             <button class="g-btn del" onclick="deleteLink(${l.id})">✕</button>
-          </div>`).join('')
-      : `<div class="empty">No links yet. Add one below.</div>`;
-
-    area.innerHTML = `
-      <div class="pv-page">
-        <div class="pv-avatar">${initials}</div>
-        <div class="pv-name">${esc(currentNickname || TAG_ID)}</div>
-        ${bioHtml}
-        <div class="pv-links" id="dlist">${cardsHtml}</div>
+          </div>`).join('')}
       </div>`;
-
-    if (ordered.length) {
-      Sortable.create(document.getElementById('dlist'), {
-        animation: 200, handle: '.g-drag',
-        onEnd: async () => {
-          const ids = [...document.querySelectorAll('#dlist .pv-card')].map(el=>parseInt(el.dataset.id));
-          await fetch(`/links/${TAG_ID}/reorder`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link_ids:ids})});
-          displayOrder = ids;
-          links = ids.map(id=>links.find(l=>l.id===id)).filter(Boolean);
-        }
-      });
-    }
+    Sortable.create(document.getElementById('dlist'), {
+      animation: 200, handle: '.g-drag',
+      onEnd: async () => {
+        const ids = [...document.querySelectorAll('#dlist .g-row')].map(el=>parseInt(el.dataset.id));
+        await fetch(`/links/${TAG_ID}/reorder`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link_ids:ids})});
+        displayOrder = ids;
+        links = ids.map(id=>links.find(l=>l.id===id)).filter(Boolean);
+      }
+    });
   }
 
   // ══ CRUD ══════════════════════════════════════════════════════════════
@@ -710,8 +689,7 @@
   function startEdit(id,label,url) {
     const row=document.getElementById(`item-${id}`);
     // Works for both g-row (direct mode) and pv-card (display mode)
-    row.style.flexWrap='wrap';
-    row.innerHTML=`<div class="ef" style="flex:1;min-width:0;"><input type="text" id="el${id}" value="${esc(label)}" placeholder="Label"><input type="url" id="eu${id}" value="${esc(url)}" placeholder="https://..."><div class="ef-acts"><button class="bsave" onclick="saveEdit(${id})">Save</button><button class="bcanc" onclick="loadLinks()">Cancel</button></div></div>`;
+    row.innerHTML=`<div class="ef"><input type="text" id="el${id}" value="${esc(label)}" placeholder="Label"><input type="url" id="eu${id}" value="${esc(url)}" placeholder="https://..."><div class="ef-acts"><button class="bsave" onclick="saveEdit(${id})">Save</button><button class="bcanc" onclick="loadLinks()">Cancel</button></div></div>`;
     document.getElementById(`el${id}`).focus();
   }
   async function saveEdit(id) {
