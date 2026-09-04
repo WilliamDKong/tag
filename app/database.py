@@ -10,7 +10,13 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./taptag.db")
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+is_postgres = DATABASE_URL.startswith("postgresql")
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+    **({ "pool_size": 5, "max_overflow": 10, "pool_timeout": 30 } if is_postgres else {})
+)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 class Base(DeclarativeBase):

@@ -1,4 +1,5 @@
 aiosqlite
+uvloop
 fastapi
 uvicorn[standard]
 sqlalchemy[asyncio]
