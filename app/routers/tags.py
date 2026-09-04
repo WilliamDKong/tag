@@ -133,10 +133,15 @@ async def delete_tag(
     tag = result.scalar_one_or_none()
     if not tag or tag.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="无权操作")
+    # Release the tag (keep the DB record so the physical chip can be re-claimed later)
     await db.execute(delete(TagLink).where(TagLink.tag_id == tag_id))
-    await db.delete(tag)
+    tag.user_id = None
+    tag.nickname = None
+    tag.profile_name = None
+    tag.bio = None
+    tag.current_mode = ModeEnum.DIRECT
     await db.commit()
-    return {"message": "标签已删除"}
+    return {"message": "标签已释放"}
 
 
 @router.get("/dashboard/{tag_id}")

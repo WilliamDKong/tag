@@ -111,15 +111,36 @@
 </div>
 
 <script>
-  // If already logged in, bind immediately and go to dashboard
   (async () => {
     const TAG_ID = "{{ tag_id }}";
     try {
       const res = await fetch('/tags/my');
-      if (res.ok) {
+      if (!res.ok) return; // not logged in — show register/login buttons
+
+      const tags = await res.json();
+      const alreadyOwned = tags.some(t => t.id === TAG_ID);
+
+      if (alreadyOwned) {
+        // Already mine — go straight to dashboard
+        window.location.replace(`/tags/dashboard/${TAG_ID}`);
+        return;
+      }
+
+      // Logged in but this tag is unclaimed — show a confirm button instead of auto-binding
+      document.getElementById('btn-register').style.display = 'none';
+      document.querySelector('.divider').style.display = 'none';
+      document.getElementById('btn-login').style.display = 'none';
+
+      const claim = document.createElement('button');
+      claim.className = 'btn btn-primary';
+      claim.textContent = 'Add to my account';
+      claim.onclick = async () => {
+        claim.textContent = 'Adding…';
+        claim.disabled = true;
         await fetch(`/tags/bind/${TAG_ID}`, { method: 'POST' });
         window.location.replace(`/tags/dashboard/${TAG_ID}`);
-      }
+      };
+      document.querySelector('.sub').insertAdjacentElement('afterend', claim);
     } catch {}
   })();
 </script>
