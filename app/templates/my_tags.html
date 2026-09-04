@@ -62,19 +62,6 @@
       margin-bottom: 28px;
     }
 
-    /* ── Add Tag button ── */
-    .btn-add {
-      width: 100%; padding: 14px;
-      background: var(--blue); color: #fff;
-      border: none; border-radius: 14px;
-      font-size: 15px; font-weight: 600; font-family: inherit;
-      cursor: pointer; margin-bottom: 24px;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: opacity .18s, transform .18s;
-    }
-    .btn-add:hover { opacity: .85; transform: scale(1.01); }
-    .btn-add:active { opacity: .7; transform: scale(.99); }
-
     /* ── Tag cards ── */
     .tag-card {
       background: var(--bg3);
@@ -159,9 +146,6 @@
 
 <div class="container">
   <h1 class="page-title">My Tags</h1>
-  <button class="btn-add" onclick="addTag()">
-    <span style="font-size:18px;line-height:1;">+</span> Add Tag
-  </button>
   <div id="tag-list"></div>
 </div>
 
@@ -176,7 +160,7 @@
       list.innerHTML = `
         <div class="empty">
           <div class="empty-icon">📡</div>
-          No tags yet.<br>Add your first one above.
+          No tags yet.<br>Scan your TapTag chip to get started.
         </div>`;
       return;
     }
@@ -206,22 +190,6 @@
 
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  async function addTag() {
-    try {
-      const res = await fetch('/tags/create', { method: 'POST' });
-      if (res.status === 401) { window.location.href = '/login'; return; }
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || `Error ${res.status} — please try again.`);
-        return;
-      }
-      const data = await res.json();
-      window.location.href = `/tags/dashboard/${data.tag_id}`;
-    } catch (e) {
-      alert('Network error — check your connection and try again.');
-    }
   }
 
   async function deleteTag(e, id, name) {
