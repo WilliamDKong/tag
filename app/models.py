@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, String, Text, Integer, ForeignKey, DateTime, Enum, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -35,6 +35,10 @@ class NFCTag(Base):
     user = relationship("User", back_populates="tags")
     links = relationship("TagLink", back_populates="tag", order_by="TagLink.sort_order")
 
+    __table_args__ = (
+        Index("ix_nfc_tags_user_id", "user_id"),
+    )
+
 
 class TagLink(Base):
     __tablename__ = "tag_links"
@@ -46,3 +50,7 @@ class TagLink(Base):
     sort_order = Column(Integer, default=0)          # 排序权重，拖拽时更新
 
     tag = relationship("NFCTag", back_populates="links")
+
+    __table_args__ = (
+        Index("ix_tag_links_tag_id_sort", "tag_id", "sort_order"),
+    )
