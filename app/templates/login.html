@@ -140,6 +140,8 @@
         } else {
           const data = await res.json();
           let msg = data.detail || 'Something went wrong.';
+          if (Array.isArray(msg)) msg = msg.map(e => e.msg || String(e)).join(' · ');
+          else if (typeof msg === 'object') msg = 'Something went wrong. Please try again.';
           if (res.status === 429) msg = 'Too many attempts. Please wait a minute and try again.';
           banner.textContent = msg;
           banner.style.display = 'block';
