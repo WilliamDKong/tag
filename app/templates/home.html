@@ -432,24 +432,26 @@
     .form-factors p { font-size: 17px; color: var(--t2); max-width: 440px; margin: 0 auto; }
 
     .ff-scroll {
-      display: flex; flex-wrap: wrap; justify-content: center;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
       gap: 16px; padding: 0 40px;
-      max-width: 1080px; margin: 0 auto;
+      max-width: 1120px; margin: 0 auto;
     }
-    @media(max-width:640px) {
+    @media(max-width:860px) {
       .ff-scroll {
-        flex-wrap: nowrap; justify-content: flex-start;
+        display: flex; flex-wrap: nowrap;
         overflow-x: auto; scrollbar-width: none;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
         padding: 0 20px; max-width: 100%;
       }
       .ff-scroll::-webkit-scrollbar { display: none; }
+      .ff-card { width: 200px; flex-shrink: 0; }
     }
 
     .ff-card {
-      flex-shrink: 0; scroll-snap-align: start;
-      width: 200px; border-radius: 22px;
+      scroll-snap-align: start;
+      border-radius: 22px;
       border: 1px solid var(--line);
       background: var(--bg3);
       padding: 32px 24px;

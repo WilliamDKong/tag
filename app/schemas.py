@@ -1,9 +1,19 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
+import re
 
 
 class UserRegister(BaseModel):
     email: EmailStr
     password: str
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if not re.search(r"[0-9!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", v):
+            raise ValueError("Password must contain a number or special character")
+        return v
 
 
 class UserLogin(BaseModel):
@@ -31,3 +41,8 @@ class ModeSwitch(BaseModel):
 
 class NicknameUpdate(BaseModel):
     nickname: str | None = None
+
+
+class ProfileUpdate(BaseModel):
+    profile_name: str | None = None
+    bio: str | None = None

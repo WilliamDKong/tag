@@ -27,7 +27,9 @@ class NFCTag(Base):
     id = Column(String(10), primary_key=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=True)
     current_mode = Column(Enum(ModeEnum), default=ModeEnum.DIRECT, nullable=False, server_default="DIRECT")
-    nickname = Column(String(50), nullable=True)
+    nickname = Column(String(50), nullable=True)       # internal label (owner-facing)
+    profile_name = Column(String(80), nullable=True)   # public display name (visitor-facing)
+    bio = Column(String(200), nullable=True)            # short tagline shown on profile page
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="tags")

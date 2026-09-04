@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if tag.profile_name %}{{ tag.profile_name }}{% else %}TapTag Profile{% endif %}</title>
+  <meta name="theme-color" content="#000000">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:   #000;
+      --t1:   #f5f5f7;
+      --t2:   #a1a1a6;
+      --t3:   #6e6e73;
+      --line: rgba(255,255,255,0.09);
+      --blue: #2997ff;
+    }
+
+    html { height: 100%; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background glow */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% -10%, rgba(41,151,255,.20), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 10% 80%,  rgba(120,60,255,.10), transparent 55%),
+        radial-gradient(ellipse 40% 35% at 90% 70%,  rgba(191,90,242,.08), transparent 55%);
+    }
+
+    /* Page layout */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 480px; margin: 0 auto;
+      padding: 56px 24px 80px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+
+    /* ── Avatar ── */
+    .avatar {
+      width: 88px; height: 88px; border-radius: 50%;
+      background: linear-gradient(135deg, #2997ff 0%, #bf5af2 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; font-weight: 700; color: #fff;
+      letter-spacing: -1px;
+      margin-bottom: 18px;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.4);
+      flex-shrink: 0;
+    }
+
+    /* ── Profile info ── */
+    .profile-name {
+      font-size: 24px; font-weight: 700; letter-spacing: -0.6px;
+      text-align: center; margin-bottom: 8px;
+    }
+    .profile-bio {
+      font-size: 15px; color: var(--t2); text-align: center;
+      line-height: 1.6; max-width: 320px; margin-bottom: 36px;
+    }
+
+    /* ── Links ── */
+    .links { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+
+    .link-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 20px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      text-decoration: none; color: var(--t1);
+      transition: background .18s, transform .18s, border-color .18s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .link-card:hover, .link-card:active {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.18);
+      transform: scale(1.015);
+    }
+    .link-card:active { transform: scale(0.98); }
+
+    .link-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      flex-shrink: 0; object-fit: contain;
+      background: rgba(255,255,255,0.08);
+    }
+    .link-icon-fallback {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .link-label {
+      flex: 1; font-size: 16px; font-weight: 500; letter-spacing: -0.2px;
+    }
+    .link-arrow {
+      color: var(--t3); font-size: 18px; font-weight: 300; flex-shrink: 0;
+    }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center; color: var(--t3); font-size: 15px;
+      padding: 48px 0; line-height: 1.6;
+    }
+
+    /* ── Footer branding ── */
+    .footer {
+      margin-top: 48px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .footer-label {
+      font-size: 11px; color: var(--t3); letter-spacing: 0.5px;
+    }
+    .footer-logo {
+      font-size: 13px; font-weight: 700; letter-spacing: -0.2px;
+      color: rgba(255,255,255,0.28); text-decoration: none;
+      transition: color .18s;
+    }
+    .footer-logo:hover { color: rgba(255,255,255,0.5); }
+    .footer-cta {
+      margin-top: 10px;
+      font-size: 12px; color: var(--blue);
+      text-decoration: none; font-weight: 500;
+      opacity: 0.7; transition: opacity .18s;
+    }
+    .footer-cta:hover { opacity: 1; }
+
+    /* Entrance animation */
+    .page > * {
+      animation: fadeUp .5s cubic-bezier(.22,.61,.36,1) both;
+    }
+    .avatar        { animation-delay: .05s; }
+    .profile-name  { animation-delay: .10s; }
+    .profile-bio   { animation-delay: .14s; }
+    .links         { animation-delay: .18s; }
+    .footer        { animation-delay: .22s; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Avatar: initials from profile_name or tag id -->
+  <div class="avatar" id="avatar"></div>
+
+  <!-- Name & bio -->
+  {% if tag.profile_name %}
+    <div class="profile-name">{{ tag.profile_name }}</div>
+  {% else %}
+    <div class="profile-name" style="color:var(--t3);">{{ tag.id }}</div>
+  {% endif %}
+
+  {% if tag.bio %}
+    <div class="profile-bio">{{ tag.bio }}</div>
+  {% else %}
+    <div class="profile-bio" style="color:var(--t3);font-style:italic;">No bio yet.</div>
+  {% endif %}
+
+  <!-- Links -->
+  <div class="links">
+    {% if links %}
+      {% for link in links %}
+        <a class="link-card" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+          <img class="link-icon" id="icon-{{ loop.index }}"
+               src="" alt="{{ link.label }}"
+               data-url="{{ link.url }}"
+               onerror="this.outerHTML='<div class=link-icon-fallback>🔗</div>'">
+          <span class="link-label">{{ link.label }}</span>
+          <span class="link-arrow">›</span>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty">No links added yet.</div>
+    {% endif %}
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-label">Powered by</span>
+    <a class="footer-logo" href="/" target="_blank">TapTag</a>
+    <a class="footer-cta" href="/register" target="_blank">Get your own →</a>
+  </div>
+
+</div>
+
+<script>
+  // Set favicons
+  document.querySelectorAll('.link-icon[data-url]').forEach(img => {
+    try {
+      const domain = new URL(img.dataset.url).hostname;
+      img.src = `https://www.google.com/s2/favicons?sz=64&domain=${domain}`;
+    } catch { img.outerHTML = '<div class="link-icon-fallback">🔗</div>'; }
+  });
+
+  // Generate initials for avatar
+  const name = {{ tag.profile_name | tojson }};
+  const id   = {{ tag.id | tojson }};
+  const src  = name || id;
+  const words = src.trim().split(/\s+/);
+  const initials = words.length >= 2
+    ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
+    : src.slice(0, 2).toUpperCase();
+  document.getElementById('avatar').textContent = initials;
+</script>
+</body>
+</html>

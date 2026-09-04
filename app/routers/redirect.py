@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -14,10 +14,7 @@ async def scan_redirect(id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(NFCTag).where(NFCTag.id == id))
     tag = result.scalar_one_or_none()
 
-    if not tag:
-        return RedirectResponse(url=f"/activate?id={id}")
-
-    if tag.user_id is None:
+    if not tag or tag.user_id is None:
         return RedirectResponse(url=f"/activate?id={id}")
 
     links_result = await db.execute(
@@ -26,12 +23,17 @@ async def scan_redirect(id: str, db: AsyncSession = Depends(get_db)):
     links = links_result.scalars().all()
 
     if tag.current_mode == ModeEnum.DIRECT:
-        # 直接跳转第一条链接
         if not links:
-            return render("links.html", links=[], tag_id=id)
+            return render("profile.html", links=[], tag=_tag_ctx(tag))
         return RedirectResponse(url=links[0].url, status_code=302)
 
-    else:
-        # DISPLAY 模式：展示链接列表
-        links_data = [{"label": l.label, "url": l.url} for l in links]
-        return render("links.html", links=links_data, tag_id=id)
+    links_data = [{"label": l.label, "url": l.url} for l in links]
+    return render("profile.html", links=links_data, tag=_tag_ctx(tag))
+
+
+def _tag_ctx(tag: NFCTag) -> dict:
+    return {
+        "id": tag.id,
+        "profile_name": tag.profile_name or "",
+        "bio": tag.bio or "",
+    }
