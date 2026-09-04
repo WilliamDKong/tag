@@ -8,6 +8,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
+    html { overflow-x: hidden; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
       min-height: 100vh;
@@ -16,6 +17,8 @@
       background-attachment: fixed;
       -webkit-font-smoothing: antialiased;
       position: relative;
+      overflow-x: hidden;
+      max-width: 100vw;
     }
     body::before {
       content: '';
@@ -92,13 +95,20 @@
     .btn-done:hover { opacity: .85; }
     .btn-txt  { padding: 10px; background: none; border: none; font-size: 15px; color: rgba(255,255,255,0.35); cursor: pointer; font-family: inherit; }
 
-    /* Preview iframe */
-    .preview-card { border-radius: 20px; overflow: hidden; margin-bottom: 18px; }
-    .preview-bar  { background: rgba(255,255,255,0.04); padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; justify-content: space-between; align-items: center; }
-    .preview-bar span { font-size: 12px; color: rgba(255,255,255,0.35); }
-    .preview-bar a { font-size: 12px; color: #2997ff; text-decoration: none; }
-    .preview-frame { height: 230px; overflow: hidden; position: relative; background: #000; }
-    .preview-frame iframe { width: 390px; height: 500px; border: none; transform: scale(0.85); transform-origin: top left; pointer-events: none; }
+    /* ══ Profile view (display mode) ══ */
+    .pv-page  { display: flex; flex-direction: column; align-items: center; padding: 12px 0 4px; }
+    .pv-avatar{ width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg,#2997ff,#bf5af2); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 14px; box-shadow: 0 0 0 3px rgba(255,255,255,0.08), 0 8px 24px rgba(0,0,0,0.35); flex-shrink:0; }
+    .pv-name  { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; text-align: center; }
+    .pv-bio   { font-size: 14px; color: rgba(255,255,255,0.50); text-align: center; margin-bottom: 22px; line-height: 1.5; max-width: 280px; }
+    .pv-bio.empty { color: rgba(255,255,255,0.22); font-style: italic; }
+    .pv-links { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+    .pv-card  { display: flex; align-items: center; gap: 10px; padding: 13px 14px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.09); border-radius: 16px; }
+    .pv-icon  { width: 32px; height: 32px; border-radius: 8px; object-fit: contain; background: rgba(255,255,255,0.08); flex-shrink:0; }
+    .pv-icon-fb{ width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .pv-label { flex:1; font-size:15px; font-weight:500; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pv-arrow { color: rgba(255,255,255,0.22); font-size:18px; flex-shrink:0; }
+    .pv-open  { font-size:12px; color:#2997ff; text-decoration:none; text-align:center; display:block; margin-top:6px; opacity:.75; }
+    .pv-open:hover { opacity:1; }
 
     /* ══ Mode toggle ══ */
     .mode-row { border-radius: 18px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
@@ -631,40 +641,61 @@
     links=reordered;
   }
 
-  // ══ Display mode ══════════════════════════════════════════════════════
+  // ══ Display mode — profile view with edit controls ════════════════════
+  function pvIcon(url) {
+    const s = favicon(url);
+    return s
+      ? `<img class="pv-icon" src="${s}" onerror="this.outerHTML='<div class=pv-icon-fb>🔗</div>'">`
+      : `<div class="pv-icon-fb">🔗</div>`;
+  }
+
   function renderDraggable() {
-    const area=document.getElementById('links-area');
-    const ordered=getOrderedLinks();
-    if(!ordered.length){ area.innerHTML='<p class="sh">Links</p><p class="empty">No links yet.</p>'; return; }
-    area.innerHTML=`
-      <p class="sh">Preview</p>
-      <div class="preview-card lg">
-        <div class="preview-bar">
-          <span>Visitor View</span>
-          <a href="/r?id=${TAG_ID}" target="_blank">Open ↗</a>
-        </div>
-        <div class="preview-frame">
-          <iframe src="/r?id=${TAG_ID}" scrolling="no"></iframe>
-        </div>
-      </div>
-      <p class="sh">Links</p>
-      <div class="grouped lg gap" id="dlist">
-        ${ordered.map(l=>`
-          <div class="g-row" data-id="${l.id}" id="item-${l.id}" style="cursor:grab;">
-            <span class="g-drag">⠿</span>
-            ${rowIcon(l.url)}
-            <div class="g-info"><div class="g-lbl">${esc(l.label)}</div><div class="g-url">${esc(l.url)}</div></div>
+    const area = document.getElementById('links-area');
+    const ordered = getOrderedLinks();
+
+    // Initials for avatar
+    const src = currentNickname || TAG_ID;
+    const words = src.trim().split(/\s+/);
+    const initials = words.length >= 2
+      ? (words[0][0] + words[words.length-1][0]).toUpperCase()
+      : src.slice(0,2).toUpperCase();
+
+    const bioHtml = currentBio
+      ? `<div class="pv-bio">${esc(currentBio)}</div>`
+      : `<div class="pv-bio empty">Add a description…</div>`;
+
+    const cardsHtml = ordered.length
+      ? ordered.map(l=>`
+          <div class="pv-card" data-id="${l.id}" id="item-${l.id}">
+            <span class="g-drag" style="color:rgba(255,255,255,0.18);cursor:grab;font-size:15px;flex-shrink:0;">⠿</span>
+            ${pvIcon(l.url)}
+            <span class="pv-label">${esc(l.label)}</span>
+            <span class="pv-arrow">›</span>
             <button class="g-btn" onclick="startEdit(${l.id},${JSON.stringify(l.label)},${JSON.stringify(l.url)})">✎</button>
             <button class="g-btn del" onclick="deleteLink(${l.id})">✕</button>
-          </div>`).join('')}
+          </div>`).join('')
+      : `<div class="empty">No links yet. Add one below.</div>`;
+
+    area.innerHTML = `
+      <div class="pv-page">
+        <div class="pv-avatar">${initials}</div>
+        <div class="pv-name">${esc(currentNickname || TAG_ID)}</div>
+        ${bioHtml}
+        <div class="pv-links" id="dlist">${cardsHtml}</div>
+        <a class="pv-open" href="/r?id=${TAG_ID}" target="_blank">Open visitor page ↗</a>
       </div>`;
-    Sortable.create(document.getElementById('dlist'),{animation:200,handle:'.g-drag',
-      onEnd:async()=>{
-        const ids=[...document.querySelectorAll('#dlist .g-row')].map(el=>parseInt(el.dataset.id));
-        await fetch(`/links/${TAG_ID}/reorder`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link_ids:ids})});
-        displayOrder=ids;
-        links=ids.map(id=>links.find(l=>l.id===id)).filter(Boolean);
-      }});
+
+    if (ordered.length) {
+      Sortable.create(document.getElementById('dlist'), {
+        animation: 200, handle: '.g-drag',
+        onEnd: async () => {
+          const ids = [...document.querySelectorAll('#dlist .pv-card')].map(el=>parseInt(el.dataset.id));
+          await fetch(`/links/${TAG_ID}/reorder`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link_ids:ids})});
+          displayOrder = ids;
+          links = ids.map(id=>links.find(l=>l.id===id)).filter(Boolean);
+        }
+      });
+    }
   }
 
   // ══ CRUD ══════════════════════════════════════════════════════════════
@@ -679,7 +710,9 @@
   }
   function startEdit(id,label,url) {
     const row=document.getElementById(`item-${id}`);
-    row.innerHTML=`<div class="ef"><input type="text" id="el${id}" value="${esc(label)}" placeholder="Label"><input type="url" id="eu${id}" value="${esc(url)}" placeholder="https://..."><div class="ef-acts"><button class="bsave" onclick="saveEdit(${id})">Save</button><button class="bcanc" onclick="loadLinks()">Cancel</button></div></div>`;
+    // Works for both g-row (direct mode) and pv-card (display mode)
+    row.style.flexWrap='wrap';
+    row.innerHTML=`<div class="ef" style="flex:1;min-width:0;"><input type="text" id="el${id}" value="${esc(label)}" placeholder="Label"><input type="url" id="eu${id}" value="${esc(url)}" placeholder="https://..."><div class="ef-acts"><button class="bsave" onclick="saveEdit(${id})">Save</button><button class="bcanc" onclick="loadLinks()">Cancel</button></div></div>`;
     document.getElementById(`el${id}`).focus();
   }
   async function saveEdit(id) {
