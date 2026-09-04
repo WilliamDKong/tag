@@ -96,7 +96,7 @@
     .btn-txt  { padding: 10px; background: none; border: none; font-size: 15px; color: rgba(255,255,255,0.35); cursor: pointer; font-family: inherit; }
 
     /* ══ Profile view (display mode) ══ */
-    .pv-page  { display: flex; flex-direction: column; align-items: center; padding: 12px 0 4px; }
+    .pv-page  { display: flex; flex-direction: column; align-items: center; padding: 4px 0 4px; }
     .pv-avatar{ width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg,#2997ff,#bf5af2); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 14px; box-shadow: 0 0 0 3px rgba(255,255,255,0.08), 0 8px 24px rgba(0,0,0,0.35); flex-shrink:0; }
     .pv-name  { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; text-align: center; }
     .pv-bio   { font-size: 14px; color: rgba(255,255,255,0.50); text-align: center; margin-bottom: 22px; line-height: 1.5; max-width: 280px; }
@@ -682,7 +682,6 @@
         <div class="pv-name">${esc(currentNickname || TAG_ID)}</div>
         ${bioHtml}
         <div class="pv-links" id="dlist">${cardsHtml}</div>
-        <a class="pv-open" href="/r?id=${TAG_ID}" target="_blank">Open visitor page ↗</a>
       </div>`;
 
     if (ordered.length) {
