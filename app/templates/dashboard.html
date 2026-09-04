@@ -318,7 +318,7 @@
       document.getElementById('ni').focus();
     } else {
       const bioHtml = currentBio ? `<div class="tag-bio">${esc(currentBio)}</div>` : '';
-      a.innerHTML = `<div class="tag-header lg gap"><div><div class="tag-name">${esc(currentNickname||TAG_ID)}</div>${bioHtml}<div class="tag-sub">${TAG_ID}</div></div><button class="btn-rename" onclick="renderHeader(true)">✎</button></div>`;
+      a.innerHTML = `<div class="tag-header lg gap"><div><div class="tag-name">${esc(currentNickname||TAG_ID)}</div>${bioHtml}</div><button class="btn-rename" onclick="renderHeader(true)">✎</button></div>`;
     }
   }
   async function saveNick() {

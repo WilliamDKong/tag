@@ -47,18 +47,6 @@
       display: flex; flex-direction: column; align-items: center;
     }
 
-    /* ── Avatar ── */
-    .avatar {
-      width: 88px; height: 88px; border-radius: 50%;
-      background: linear-gradient(135deg, #2997ff 0%, #bf5af2 100%);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 32px; font-weight: 700; color: #fff;
-      letter-spacing: -1px;
-      margin-bottom: 18px;
-      box-shadow: 0 0 0 3px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.4);
-      flex-shrink: 0;
-    }
-
     /* ── Profile info ── */
     .profile-name {
       font-size: 24px; font-weight: 700; letter-spacing: -0.6px;
@@ -139,11 +127,10 @@
     .page > * {
       animation: fadeUp .5s cubic-bezier(.22,.61,.36,1) both;
     }
-    .avatar        { animation-delay: .05s; }
-    .profile-name  { animation-delay: .10s; }
-    .profile-bio   { animation-delay: .14s; }
+    .profile-name  { animation-delay: .06s; }
+    .profile-bio   { animation-delay: .12s; }
     .links         { animation-delay: .18s; }
-    .footer        { animation-delay: .22s; }
+    .footer        { animation-delay: .24s; }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -153,9 +140,6 @@
 <body>
 
 <div class="page">
-
-  <!-- Avatar: initials from profile_name or tag id -->
-  <div class="avatar" id="avatar"></div>
 
   <!-- Name & bio -->
   {% if tag.profile_name %}
@@ -198,23 +182,12 @@
 </div>
 
 <script>
-  // Set favicons
   document.querySelectorAll('.link-icon[data-url]').forEach(img => {
     try {
       const domain = new URL(img.dataset.url).hostname;
       img.src = `https://www.google.com/s2/favicons?sz=64&domain=${domain}`;
     } catch { img.outerHTML = '<div class="link-icon-fallback">🔗</div>'; }
   });
-
-  // Generate initials for avatar
-  const name = {{ tag.profile_name | tojson }};
-  const id   = {{ tag.id | tojson }};
-  const src  = name || id;
-  const words = src.trim().split(/\s+/);
-  const initials = words.length >= 2
-    ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
-    : src.slice(0, 2).toUpperCase();
-  document.getElementById('avatar').textContent = initials;
 </script>
 </body>
 </html>
