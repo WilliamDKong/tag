@@ -5,61 +5,281 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign Up – TapTag</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-    .card { background: white; border-radius: 16px; padding: 40px 32px; width: 100%; max-width: 400px; box-shadow: 0 2px 20px rgba(0,0,0,0.08); }
-    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-    .subtitle { color: #888; font-size: 14px; margin-bottom: 32px; }
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #444; }
-    input { width: 100%; padding: 12px 14px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 15px; outline: none; transition: border 0.2s; font-family: inherit; }
-    input:focus { border-color: #000; }
-    button { width: 100%; padding: 13px; background: #000; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; font-family: inherit; }
-    button:hover { background: #333; }
-    .error { color: #e53e3e; font-size: 13px; margin-top: 10px; display: none; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:   #000; --t1: #f5f5f7; --t2: #a1a1a6; --t3: #6e6e73;
+      --blue: #2997ff; --line: rgba(255,255,255,0.10);
+      --err:  #ff453a; --ok: #32d74b;
+    }
+    html, body { min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, rgba(41,151,255,.14), transparent 65%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(191,90,242,.08), transparent 60%);
+    }
+    .back { position: fixed; top: 16px; left: 20px; font-size: 14px; color: var(--blue); text-decoration: none; font-weight: 500; z-index: 10; }
+    .back:hover { opacity: .75; }
+
+    /* Card */
+    .card { position: relative; z-index: 1; width: 100%; max-width: 380px; background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 22px; padding: 40px 36px 36px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+    h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.8px; margin-bottom: 6px; }
+    .subtitle { font-size: 14px; color: var(--t2); margin-bottom: 28px; }
+
+    /* Field */
+    .field { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--t3); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 7px; }
+    .input-wrap { position: relative; }
+    input[type="email"], input[type="password"], input[type="text"] {
+      width: 100%; padding: 12px 16px; padding-right: 44px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; font-size: 15px; font-family: inherit;
+      color: var(--t1); outline: none;
+      transition: border-color .18s, background .18s;
+    }
+    input::placeholder { color: var(--t3); }
+    input:focus { border-color: var(--blue); background: rgba(41,151,255,0.06); }
+    input.valid   { border-color: var(--ok) !important; }
+    input.invalid { border-color: var(--err) !important; }
+
+    /* Show/hide toggle */
+    .toggle-pw {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 4px;
+      color: var(--t3); font-size: 16px; line-height: 1;
+      transition: color .15s;
+    }
+    .toggle-pw:hover { color: var(--t2); }
+
+    /* Field hint */
+    .field-hint { font-size: 12px; margin-top: 6px; min-height: 16px; transition: color .2s; color: var(--t3); }
+    .field-hint.ok  { color: var(--ok); }
+    .field-hint.bad { color: var(--err); }
+
+    /* Strength bar */
+    .strength-wrap { margin-top: 8px; display: none; }
+    .strength-wrap.show { display: block; }
+    .strength-bar {
+      height: 3px; border-radius: 99px; background: rgba(255,255,255,0.08);
+      overflow: hidden; margin-bottom: 5px;
+    }
+    .strength-fill {
+      height: 100%; border-radius: 99px;
+      transition: width .3s, background .3s;
+      width: 0%;
+    }
+    .strength-label { font-size: 11px; color: var(--t3); }
+
+    /* Submit */
+    .btn-submit {
+      width: 100%; margin-top: 22px; padding: 13px;
+      background: var(--blue); color: #fff; border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: opacity .18s, transform .18s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-submit:hover:not(:disabled) { opacity: .85; transform: scale(1.01); }
+    .btn-submit:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error banner */
+    .error-banner {
+      font-size: 13px; color: var(--err); margin-top: 14px; display: none;
+      padding: 10px 14px; background: rgba(255,69,58,.10);
+      border: 1px solid rgba(255,69,58,.2); border-radius: 10px; line-height: 1.5;
+    }
+
+    .switch-link { text-align: center; margin-top: 22px; font-size: 14px; color: var(--t2); }
+    .switch-link a { color: var(--blue); font-weight: 500; text-decoration: none; }
   </style>
 </head>
 <body>
+  <a class="back" href="/">‹ TapTag</a>
+
   <div class="card">
-    <h1>TapTag</h1>
-    <p class="subtitle">Create your account.</p>
-    <div class="form-group">
+    <h1>Create account</h1>
+    <p class="subtitle">Free to start. No credit card required.</p>
+
+    <!-- Email -->
+    <div class="field">
       <label>Email</label>
-      <input type="email" id="email" placeholder="you@example.com">
+      <div class="input-wrap">
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" oninput="validateEmail()">
+      </div>
+      <div class="field-hint" id="email-hint"></div>
     </div>
-    <div class="form-group">
+
+    <!-- Password -->
+    <div class="field">
       <label>Password</label>
-      <input type="password" id="password" placeholder="Choose a password">
+      <div class="input-wrap">
+        <input type="password" id="password" placeholder="Min 8 chars, 1 number or symbol" autocomplete="new-password" oninput="validatePassword()">
+        <button class="toggle-pw" type="button" onclick="toggleVis('password', this)" tabindex="-1">🙈</button>
+      </div>
+      <div class="strength-wrap" id="strength-wrap">
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+        <div class="strength-label" id="strength-label"></div>
+      </div>
     </div>
-    <button onclick="register()">Sign Up</button>
-    <p class="error" id="error"></p>
-    <p style="text-align:center;margin-top:20px;font-size:14px;color:#888;">
-      Already have an account? <a href="/login" style="color:#000;font-weight:600;text-decoration:none;">Log in</a>
-    </p>
+
+    <!-- Confirm password -->
+    <div class="field">
+      <label>Confirm Password</label>
+      <div class="input-wrap">
+        <input type="password" id="confirm" placeholder="Repeat your password" autocomplete="new-password" oninput="validateConfirm()">
+        <button class="toggle-pw" type="button" onclick="toggleVis('confirm', this)" tabindex="-1">👁</button>
+      </div>
+      <div class="field-hint" id="confirm-hint"></div>
+    </div>
+
+    <button class="btn-submit" id="submit-btn" onclick="register()" disabled>
+      <span class="spinner" id="spinner"></span>
+      <span id="btn-label">Sign Up Free</span>
+    </button>
+    <div class="error-banner" id="error-banner"></div>
+
+    <p class="switch-link">Already have an account? <a href="/login">Log in</a></p>
   </div>
 
   <script>
-    async function register() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const err = document.getElementById('error');
-      err.style.display = 'none';
-      const res = await fetch('/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (res.ok) {
-        window.location.href = '/my-tags';
-      } else {
-        const data = await res.json();
-        err.textContent = data.detail;
-        err.style.display = 'block';
-      }
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const SPECIAL_RE = /[0-9!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?]/;
+
+    let emailOk = false, pwOk = false, confirmOk = false;
+
+    function setField(id, hintId, ok, msg) {
+      const el = document.getElementById(id);
+      const hint = document.getElementById(hintId);
+      if (msg === null) { el.className = ''; hint.textContent = ''; hint.className = 'field-hint'; return; }
+      el.className = ok ? 'valid' : 'invalid';
+      hint.textContent = msg;
+      hint.className = 'field-hint ' + (ok ? 'ok' : 'bad');
     }
 
-    // 按回车也能提交
-    document.addEventListener('keydown', e => { if (e.key === 'Enter') register(); });
+    function validateEmail() {
+      const v = document.getElementById('email').value;
+      if (!v) { setField('email','email-hint',false,null); emailOk=false; }
+      else if (!EMAIL_RE.test(v)) { setField('email','email-hint',false,'Enter a valid email address'); emailOk=false; }
+      else { setField('email','email-hint',true,'Looks good'); emailOk=true; }
+      updateSubmit();
+    }
+
+    function strengthScore(pw) {
+      let s = 0;
+      if (pw.length >= 8)  s++;
+      if (pw.length >= 12) s++;
+      if (/[A-Z]/.test(pw)) s++;
+      if (/[0-9]/.test(pw)) s++;
+      if (/[^A-Za-z0-9]/.test(pw)) s++;
+      return s; // 0-5
+    }
+
+    function validatePassword() {
+      const v = document.getElementById('password').value;
+      const wrap = document.getElementById('strength-wrap');
+      const fill = document.getElementById('strength-fill');
+      const lbl  = document.getElementById('strength-label');
+
+      if (!v) {
+        wrap.className = 'strength-wrap';
+        document.getElementById('password').className = '';
+        pwOk = false; updateSubmit(); return;
+      }
+
+      wrap.className = 'strength-wrap show';
+      const score = strengthScore(v);
+      const levels = [
+        { w:'20%', c:'#ff453a', t:'Too weak'  },
+        { w:'40%', c:'#ff9f0a', t:'Weak'      },
+        { w:'60%', c:'#ffd60a', t:'Fair'      },
+        { w:'80%', c:'#32d74b', t:'Good'      },
+        { w:'100%',c:'#32d74b', t:'Strong'    },
+      ];
+      const lvl = levels[Math.min(score-1, 4)] || levels[0];
+      fill.style.width = lvl.w; fill.style.background = lvl.c;
+      lbl.textContent = lvl.t; lbl.style.color = lvl.c;
+
+      const hasLen     = v.length >= 8;
+      const hasSpecial = SPECIAL_RE.test(v);
+      pwOk = hasLen && hasSpecial;
+      document.getElementById('password').className = pwOk ? 'valid' : (v.length ? 'invalid' : '');
+      validateConfirm();
+      updateSubmit();
+    }
+
+    function validateConfirm() {
+      const pw  = document.getElementById('password').value;
+      const cfm = document.getElementById('confirm').value;
+      if (!cfm) { setField('confirm','confirm-hint',false,null); confirmOk=false; updateSubmit(); return; }
+      if (cfm === pw) { setField('confirm','confirm-hint',true,'Passwords match'); confirmOk=true; }
+      else            { setField('confirm','confirm-hint',false,'Passwords do not match'); confirmOk=false; }
+      updateSubmit();
+    }
+
+    function updateSubmit() {
+      document.getElementById('submit-btn').disabled = !(emailOk && pwOk && confirmOk);
+    }
+
+    function toggleVis(inputId, btn) {
+      const el = document.getElementById(inputId);
+      el.type = el.type === 'password' ? 'text' : 'password';
+      btn.textContent = el.type === 'password' ? '🙈' : '🐵';
+    }
+
+    function setLoading(on) {
+      document.getElementById('spinner').style.display = on ? 'block' : 'none';
+      document.getElementById('btn-label').textContent = on ? 'Creating account…' : 'Sign Up Free';
+      document.getElementById('submit-btn').disabled = on;
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !document.getElementById('submit-btn').disabled) register();
+    });
+
+    async function register() {
+      const banner = document.getElementById('error-banner');
+      banner.style.display = 'none';
+      setLoading(true);
+
+      try {
+        const res = await fetch('/users/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email:    document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value,
+          })
+        });
+
+        if (res.ok) {
+          window.location.href = '/my-tags';
+        } else {
+          const data = await res.json();
+          let msg = data.detail || 'Something went wrong. Please try again.';
+          // Pydantic validation errors come as an array
+          if (Array.isArray(msg)) msg = msg.map(e => e.msg).join(' · ');
+          banner.textContent = msg;
+          banner.style.display = 'block';
+          setLoading(false);
+          updateSubmit();
+        }
+      } catch {
+        banner.textContent = 'Network error. Check your connection and try again.';
+        banner.style.display = 'block';
+        setLoading(false);
+        updateSubmit();
+      }
+    }
   </script>
 </body>
 </html>

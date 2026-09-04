@@ -5,56 +5,139 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Log In – TapTag</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-    .card { background: white; border-radius: 16px; padding: 40px 32px; width: 100%; max-width: 400px; box-shadow: 0 2px 20px rgba(0,0,0,0.08); }
-    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-    .subtitle { color: #888; font-size: 14px; margin-bottom: 32px; }
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #444; }
-    input { width: 100%; padding: 12px 14px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 15px; outline: none; transition: border 0.2s; }
-    input:focus { border-color: #000; }
-    button { width: 100%; padding: 13px; background: #000; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
-    button:hover { background: #333; }
-    .error { color: #e53e3e; font-size: 13px; margin-top: 10px; display: none; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #000; --t1: #f5f5f7; --t2: #a1a1a6; --t3: #6e6e73;
+      --blue: #2997ff; --line: rgba(255,255,255,0.10); --err: #ff453a;
+    }
+    html, body { min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: var(--bg); color: var(--t1); -webkit-font-smoothing: antialiased; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(41,151,255,.14), transparent 65%),
+                  radial-gradient(ellipse 50% 40% at 20% 80%, rgba(120,60,255,.08), transparent 60%);
+    }
+    .back { position: fixed; top: 16px; left: 20px; font-size: 14px; color: var(--blue); text-decoration: none; font-weight: 500; z-index: 10; }
+    .back:hover { opacity: .75; }
+
+    .card { position: relative; z-index: 1; width: 100%; max-width: 380px; background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 22px; padding: 40px 36px 36px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+    h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.8px; margin-bottom: 6px; }
+    .subtitle { font-size: 14px; color: var(--t2); margin-bottom: 28px; }
+
+    .field { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--t3); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 7px; }
+    .input-wrap { position: relative; }
+    input {
+      width: 100%; padding: 12px 16px; padding-right: 44px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; font-size: 15px; font-family: inherit;
+      color: var(--t1); outline: none; transition: border-color .18s, background .18s;
+    }
+    input::placeholder { color: var(--t3); }
+    input:focus { border-color: var(--blue); background: rgba(41,151,255,0.06); }
+
+    .toggle-pw {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 4px;
+      color: var(--t3); font-size: 16px; line-height: 1; transition: color .15s;
+    }
+    .toggle-pw:hover { color: var(--t2); }
+
+    .btn-submit {
+      width: 100%; margin-top: 22px; padding: 13px;
+      background: var(--blue); color: #fff; border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: opacity .18s, transform .18s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-submit:hover:not(:disabled) { opacity: .85; transform: scale(1.01); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+    .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; animation: spin .7s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-banner { font-size: 13px; color: var(--err); margin-top: 14px; display: none; padding: 10px 14px; background: rgba(255,69,58,.10); border: 1px solid rgba(255,69,58,.2); border-radius: 10px; line-height: 1.5; }
+
+    .switch-link { text-align: center; margin-top: 22px; font-size: 14px; color: var(--t2); }
+    .switch-link a { color: var(--blue); font-weight: 500; text-decoration: none; }
   </style>
 </head>
 <body>
+  <a class="back" href="/">‹ TapTag</a>
+
   <div class="card">
-    <h1>TapTag</h1>
-    <p class="subtitle">Log in to manage your tags.</p>
-    <div class="form-group">
+    <h1>Log In</h1>
+    <p class="subtitle">Welcome back.</p>
+
+    <div class="field">
       <label>Email</label>
-      <input type="email" id="email" placeholder="you@example.com">
+      <div class="input-wrap">
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+      </div>
     </div>
-    <div class="form-group">
+
+    <div class="field">
       <label>Password</label>
-      <input type="password" id="password" placeholder="Your password">
+      <div class="input-wrap">
+        <input type="password" id="password" placeholder="Your password" autocomplete="current-password">
+        <button class="toggle-pw" type="button" onclick="toggleVis()" tabindex="-1">🙈</button>
+      </div>
     </div>
-    <button onclick="login()">Log In</button>
-    <p class="error" id="error"></p>
-    <p style="text-align:center;margin-top:20px;font-size:14px;color:#888;">
-      Don't have an account? <a href="/register" style="color:#000;font-weight:600;text-decoration:none;">Sign up</a>
-    </p>
+
+    <button class="btn-submit" id="submit-btn" onclick="login()">
+      <span class="spinner" id="spinner"></span>
+      <span id="btn-label">Log In</span>
+    </button>
+    <div class="error-banner" id="error-banner"></div>
+
+    <p class="switch-link">Don't have an account? <a href="/register">Sign up free</a></p>
   </div>
 
   <script>
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+    function toggleVis() {
+      const el = document.getElementById('password');
+      const btn = document.querySelector('.toggle-pw');
+      el.type = el.type === 'password' ? 'text' : 'password';
+      btn.textContent = el.type === 'password' ? '🙈' : '🐵';
+    }
+
+    function setLoading(on) {
+      document.getElementById('spinner').style.display = on ? 'block' : 'none';
+      document.getElementById('btn-label').textContent = on ? 'Logging in…' : 'Log In';
+      document.getElementById('submit-btn').disabled = on;
+    }
+
     async function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const err = document.getElementById('error');
-      err.style.display = 'none';
-      const res = await fetch('/users/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (res.ok) {
-        window.location.href = '/my-tags';
-      } else {
-        const data = await res.json();
-        err.textContent = data.detail;
-        err.style.display = 'block';
+      const banner = document.getElementById('error-banner');
+      banner.style.display = 'none';
+      setLoading(true);
+
+      try {
+        const res = await fetch('/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email:    document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value,
+          })
+        });
+
+        if (res.ok) {
+          window.location.href = '/my-tags';
+        } else {
+          const data = await res.json();
+          let msg = data.detail || 'Something went wrong.';
+          if (res.status === 429) msg = 'Too many attempts. Please wait a minute and try again.';
+          banner.textContent = msg;
+          banner.style.display = 'block';
+          setLoading(false);
+        }
+      } catch {
+        banner.textContent = 'Network error. Check your connection and try again.';
+        banner.style.display = 'block';
+        setLoading(false);
       }
     }
   </script>

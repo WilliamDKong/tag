@@ -5,82 +5,229 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Tags – TapTag</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; min-height: 100vh; }
-    nav { background: white; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
-    .nav-logo { font-weight: 700; font-size: 16px; }
-    .btn-logout { font-size: 13px; color: #888; cursor: pointer; background: none; border: none; }
-    .container { max-width: 560px; margin: 0 auto; padding: 32px 20px; }
-    h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
-    .tag-card { background: white; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 4px rgba(0,0,0,0.06); text-decoration: none; color: #000; transition: transform 0.15s; }
-    .tag-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .tag-card-link { flex: 1; display: flex; align-items: center; justify-content: space-between; text-decoration: none; color: #000; min-width: 0; }
-    .tag-id { font-size: 15px; font-weight: 600; font-family: monospace; }
-    .tag-mode { font-size: 12px; color: #aaa; margin-top: 3px; }
-    .arrow { color: #ccc; font-size: 18px; margin-right: 10px; }
-    .btn-del { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px 6px; color: #ccc; border-radius: 6px; flex-shrink: 0; }
-    .btn-del:hover { color: #ff3b30; background: #fff0ee; }
-    .empty { text-align: center; color: #aaa; font-size: 14px; margin-top: 60px; }
-    .btn-add-tag { width: 100%; padding: 13px; background: #000; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 20px; font-family: inherit; }
-    .btn-add-tag:hover { background: #333; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:   #000;
+      --bg2:  #0a0a0a;
+      --bg3:  #111;
+      --t1:   #f5f5f7;
+      --t2:   #a1a1a6;
+      --t3:   #6e6e73;
+      --blue: #2997ff;
+      --red:  #ff453a;
+      --line: rgba(255,255,255,0.08);
+    }
+
+    html, body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      height: 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 22px;
+      background: rgba(0,0,0,0.80);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-logo {
+      font-size: 17px; font-weight: 700; letter-spacing: -0.3px;
+      text-decoration: none; color: var(--t1);
+    }
+    .btn-logout {
+      font-size: 13px; font-weight: 500;
+      color: var(--blue); background: none; border: none;
+      cursor: pointer; font-family: inherit;
+      padding: 6px 14px; border-radius: 99px;
+      transition: background .15s;
+    }
+    .btn-logout:hover { background: rgba(41,151,255,.12); }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 560px; margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    .page-title {
+      font-size: 32px; font-weight: 700; letter-spacing: -1px;
+      margin-bottom: 28px;
+    }
+
+    /* ── Add Tag button ── */
+    .btn-add {
+      width: 100%; padding: 14px;
+      background: var(--blue); color: #fff;
+      border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 600; font-family: inherit;
+      cursor: pointer; margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity .18s, transform .18s;
+    }
+    .btn-add:hover { opacity: .85; transform: scale(1.01); }
+    .btn-add:active { opacity: .7; transform: scale(.99); }
+
+    /* ── Tag cards ── */
+    .tag-card {
+      background: var(--bg3);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      margin-bottom: 12px;
+      display: flex; align-items: center;
+      overflow: hidden;
+      transition: border-color .2s, transform .2s;
+    }
+    .tag-card:hover {
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-1px);
+    }
+
+    .tag-card-link {
+      flex: 1; display: flex; align-items: center;
+      padding: 18px 20px; gap: 16px;
+      text-decoration: none; color: inherit;
+      min-width: 0;
+    }
+
+    .tag-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: rgba(41,151,255,.15);
+      border: 1px solid rgba(41,151,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+
+    .tag-info { min-width: 0; }
+    .tag-name {
+      font-size: 16px; font-weight: 600; letter-spacing: -0.2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tag-meta {
+      font-size: 12px; color: var(--t3);
+      margin-top: 3px; font-family: 'SF Mono', ui-monospace, monospace;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .tag-chevron {
+      color: var(--t3); font-size: 18px;
+      padding-right: 4px; flex-shrink: 0;
+      font-weight: 300;
+    }
+
+    .btn-del {
+      background: none; border: none; border-left: 1px solid var(--line);
+      padding: 0 18px; height: 100%; min-height: 72px;
+      cursor: pointer; color: var(--t3); font-size: 16px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: color .18s, background .18s;
+    }
+    .btn-del:hover { color: var(--red); background: rgba(255,69,58,.08); }
+
+    /* ── Mode badge ── */
+    .mode-badge {
+      display: inline-block;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 99px; margin-left: 8px;
+      vertical-align: middle;
+    }
+    .mode-direct  { background: rgba(41,151,255,.15); color: rgba(100,185,255,.9); border: 1px solid rgba(41,151,255,.2); }
+    .mode-display { background: rgba(191,90,242,.15); color: rgba(210,140,255,.9); border: 1px solid rgba(191,90,242,.2); }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center; padding: 60px 0;
+      color: var(--t3); font-size: 15px; line-height: 1.6;
+    }
+    .empty .empty-icon { font-size: 48px; margin-bottom: 16px; }
   </style>
 </head>
 <body>
-  <nav>
-    <a class="nav-logo" href="/" style="text-decoration:none;color:inherit;">TapTag</a>
-    <button class="btn-logout" onclick="logout()">Log out</button>
-  </nav>
 
-  <div class="container">
-    <h2>My Tags</h2>
-    <button class="btn-add-tag" onclick="addTag()">+ Add Tag</button>
-    <div id="tag-list"></div>
-  </div>
+<nav>
+  <a class="nav-logo" href="/">TapTag</a>
+  <button class="btn-logout" onclick="logout()">Log out</button>
+</nav>
 
-  <script>
-    async function loadTags() {
-      const res = await fetch('/tags/my');
-      if (res.status === 401) { window.location.href = '/login'; return; }
-      const tags = await res.json();
-      const list = document.getElementById('tag-list');
-      if (tags.length === 0) {
-        list.innerHTML = '<p class="empty">No tags yet.</p>';
-        return;
-      }
-      list.innerHTML = tags.map(t => `
+<div class="container">
+  <h1 class="page-title">My Tags</h1>
+  <button class="btn-add" onclick="addTag()">
+    <span style="font-size:18px;line-height:1;">+</span> Add Tag
+  </button>
+  <div id="tag-list"></div>
+</div>
+
+<script>
+  async function loadTags() {
+    const res = await fetch('/tags/my');
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    const tags = await res.json();
+    const list = document.getElementById('tag-list');
+
+    if (tags.length === 0) {
+      list.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📡</div>
+          No tags yet.<br>Add your first one above.
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = tags.map(t => {
+      const displayName = t.nickname || t.id;
+      const meta = t.nickname ? `${t.id}` : '';
+      const modeClass = t.mode === 'DISPLAY' ? 'mode-display' : 'mode-direct';
+      const modeLabel = t.mode === 'DISPLAY' ? 'Display' : 'Direct';
+      return `
         <div class="tag-card">
           <a class="tag-card-link" href="/tags/dashboard/${t.id}">
-            <div>
-              <div class="tag-id">${t.nickname || t.id}</div>
-              <div class="tag-mode">${t.nickname ? t.id + ' · ' : ''}${t.mode === 'DISPLAY' ? 'Display mode' : 'Direct mode'}</div>
+            <div class="tag-icon">📡</div>
+            <div class="tag-info">
+              <div class="tag-name">
+                ${esc(displayName)}
+                <span class="mode-badge ${modeClass}">${modeLabel}</span>
+              </div>
+              ${meta ? `<div class="tag-meta">${esc(meta)}</div>` : ''}
             </div>
-            <span class="arrow">›</span>
+            <span class="tag-chevron">›</span>
           </a>
-          <button class="btn-del" onclick="deleteTag(event,'${t.id}','${(t.nickname||t.id).replace(/'/g,"\\'")}')">🗑</button>
-        </div>
-      `).join('');
-    }
+          <button class="btn-del" onclick="deleteTag(event,'${t.id}','${esc(displayName).replace(/'/g,"\\'")}')">🗑</button>
+        </div>`;
+    }).join('');
+  }
 
-    async function addTag() {
-      const res = await fetch('/tags/create', { method: 'POST' });
-      if (res.status === 401) { window.location.href = '/login'; return; }
-      const data = await res.json();
-      window.location.href = `/tags/dashboard/${data.tag_id}`;
-    }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
-    async function deleteTag(e, id, name) {
-      e.preventDefault();
-      if (!confirm(`Delete "${name}" and all its links? This cannot be undone.`)) return;
-      const res = await fetch(`/tags/${id}`, { method: 'DELETE' });
-      if (res.ok) loadTags();
-    }
+  async function addTag() {
+    const res = await fetch('/tags/create', { method: 'POST' });
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    const data = await res.json();
+    window.location.href = `/tags/dashboard/${data.tag_id}`;
+  }
 
-    async function logout() {
-      await fetch('/users/logout', { method: 'POST' });
-      window.location.href = '/login';
-    }
+  async function deleteTag(e, id, name) {
+    e.preventDefault();
+    if (!confirm(`Delete "${name}" and all its links? This cannot be undone.`)) return;
+    const res = await fetch(`/tags/${id}`, { method: 'DELETE' });
+    if (res.ok) loadTags();
+  }
 
-    loadTags();
-  </script>
+  async function logout() {
+    await fetch('/users/logout', { method: 'POST' });
+    window.location.href = '/login';
+  }
+
+  loadTags();
+</script>
 </body>
 </html>
