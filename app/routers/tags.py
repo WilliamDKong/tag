@@ -3,12 +3,12 @@ import string
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from app.database import get_db
-from app.models import NFCTag, ModeEnum, User
+from app.models import NFCTag, ModeEnum, User, TagLink
 from app.auth import get_current_user
 from app.templates_engine import render
-from app.schemas import ModeSwitch
+from app.schemas import ModeSwitch, NicknameUpdate
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -84,7 +84,39 @@ async def get_my_tags(
 ):
     result = await db.execute(select(NFCTag).where(NFCTag.user_id == current_user.id))
     tags = result.scalars().all()
-    return [{"id": t.id, "mode": t.current_mode, "created_at": t.created_at} for t in tags]
+    return [{"id": t.id, "mode": t.current_mode, "nickname": t.nickname, "created_at": t.created_at} for t in tags]
+
+
+@router.patch("/{tag_id}/nickname")
+async def update_nickname(
+    tag_id: str,
+    data: NicknameUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(NFCTag).where(NFCTag.id == tag_id))
+    tag = result.scalar_one_or_none()
+    if not tag or tag.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权操作")
+    tag.nickname = data.nickname or None
+    await db.commit()
+    return {"message": "备注名已更新"}
+
+
+@router.delete("/{tag_id}")
+async def delete_tag(
+    tag_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(NFCTag).where(NFCTag.id == tag_id))
+    tag = result.scalar_one_or_none()
+    if not tag or tag.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权操作")
+    await db.execute(delete(TagLink).where(TagLink.tag_id == tag_id))
+    await db.delete(tag)
+    await db.commit()
+    return {"message": "标签已删除"}
 
 
 @router.get("/dashboard/{tag_id}")

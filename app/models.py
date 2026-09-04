@@ -27,6 +27,7 @@ class NFCTag(Base):
     id = Column(String(10), primary_key=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=True)
     current_mode = Column(Enum(ModeEnum), default=ModeEnum.DIRECT, nullable=False, server_default="DIRECT")
+    nickname = Column(String(50), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="tags")

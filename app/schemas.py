@@ -27,3 +27,7 @@ class LinkReorder(BaseModel):
 
 class ModeSwitch(BaseModel):
     mode: str  # "DIRECT" 或 "DISPLAY"
+
+
+class NicknameUpdate(BaseModel):
+    nickname: str | None = None
