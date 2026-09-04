@@ -384,19 +384,7 @@
       <p class="sh">Active Link</p>
       <div class="ring-outer gap">
         <div class="ring-wrap" id="ring-wrap">
-          <!-- SVG: track ring only -->
-          <svg class="ring-svg" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
-            <!-- Outer glow ring -->
-            <circle cx="140" cy="140" r="98"
-              fill="none"
-              stroke="rgba(255,255,255,0.18)"
-              stroke-width="12"/>
-            <!-- Track stroke -->
-            <circle cx="140" cy="140" r="98"
-              fill="none"
-              stroke="rgba(255,255,255,0.50)"
-              stroke-width="1.2"/>
-          </svg>
+          <svg class="ring-svg" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg"></svg>
           <!-- Nodes -->
           ${ordered.map((l,i)=>`
             <div class="rn${l.id===activeId?' active':''}" data-id="${l.id}" data-i="${i}">
