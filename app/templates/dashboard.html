@@ -78,16 +78,27 @@
     /* ══ Tag header ══ */
     .tag-header { border-radius: 20px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; }
     .tag-name { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: #f5f5f7; }
-    .tag-sub  { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 3px; font-family: 'SF Mono', ui-monospace, monospace; }
+    .tag-bio  { font-size: 13px; color: rgba(255,255,255,0.50); margin-top: 4px; line-height: 1.4; max-width: 220px; }
+    .tag-sub  { font-size: 12px; color: rgba(255,255,255,0.28); margin-top: 4px; font-family: 'SF Mono', ui-monospace, monospace; }
     .btn-rename { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: rgba(255,255,255,0.45); flex-shrink: 0; transition: background .18s; }
     .btn-rename:hover { background: rgba(255,255,255,0.16); }
-    .ne-wrap { display: flex; gap: 8px; align-items: center; margin-bottom: 22px; }
-    .ne-wrap input { flex: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; font-size: 15px; outline: none; background: rgba(255,255,255,0.07); color: #f5f5f7; font-family: inherit; transition: border-color .18s; }
-    .ne-wrap input::placeholder { color: rgba(255,255,255,0.28); }
-    .ne-wrap input:focus { border-color: #2997ff; background: rgba(41,151,255,0.08); }
+    .he-edit { padding: 18px 20px; border-radius: 20px; margin-bottom: 18px; }
+    .he-lbl  { display: block; font-size: 11px; color: rgba(255,255,255,0.30); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px; }
+    .he-inp  { width: 100%; padding: 11px 14px; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; font-size: 15px; outline: none; background: rgba(255,255,255,0.07); color: #f5f5f7; font-family: inherit; transition: border-color .18s, background .18s; margin-bottom: 10px; }
+    .he-inp::placeholder { color: rgba(255,255,255,0.25); }
+    .he-inp:focus { border-color: #2997ff; background: rgba(41,151,255,0.08); }
+    .he-acts { display: flex; gap: 8px; margin-top: 4px; }
     .btn-done { padding: 10px 16px; background: #2997ff; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity .18s; }
     .btn-done:hover { opacity: .85; }
     .btn-txt  { padding: 10px; background: none; border: none; font-size: 15px; color: rgba(255,255,255,0.35); cursor: pointer; font-family: inherit; }
+
+    /* Preview iframe */
+    .preview-card { border-radius: 20px; overflow: hidden; margin-bottom: 18px; }
+    .preview-bar  { background: rgba(255,255,255,0.04); padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; justify-content: space-between; align-items: center; }
+    .preview-bar span { font-size: 12px; color: rgba(255,255,255,0.35); }
+    .preview-bar a { font-size: 12px; color: #2997ff; text-decoration: none; }
+    .preview-frame { height: 230px; overflow: hidden; position: relative; background: #000; }
+    .preview-frame iframe { width: 390px; height: 500px; border: none; transform: scale(0.85); transform-origin: top left; pointer-events: none; }
 
     /* ══ Mode toggle ══ */
     .mode-row { border-radius: 18px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
@@ -242,26 +253,6 @@
 
   <div id="links-area"></div>
 
-  <p class="sh">Public Profile</p>
-  <div class="add-card lg gap" id="profile-card">
-    <div class="af">
-      <label>Display Name</label>
-      <input type="text" id="prof-name" maxlength="80" placeholder="Your name or brand">
-    </div>
-    <div class="af">
-      <label>Bio</label>
-      <input type="text" id="prof-bio" maxlength="200" placeholder="Short tagline shown to visitors">
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
-      <button class="badd" style="margin-top:0;" onclick="saveProfile()">Save Profile</button>
-      <a id="prof-preview" href="#" target="_blank"
-         style="font-size:13px;color:#2997ff;text-decoration:none;white-space:nowrap;padding:4px 0;">
-        Preview ↗
-      </a>
-    </div>
-    <p id="prof-saved" style="font-size:12px;color:#32d74b;margin-top:6px;display:none;">Saved ✓</p>
-  </div>
-
   <p class="sh">Add Link</p>
   <div class="add-card lg">
     <div class="af"><label>Label</label><input type="text" id="new-label" placeholder="e.g. My Instagram"></div>
@@ -272,29 +263,10 @@
 
 <script>
   const TAG_ID = "{{ tag_id }}";
-  let links = [], currentMode = 'DIRECT', linksLoaded = false, currentNickname = '';
+  let links = [], currentMode = 'DIRECT', linksLoaded = false, currentNickname = '', currentBio = '';
   let displayOrder = [];
   let activeId = null;
   let _moveDrag = null, _endDrag = null;
-
-  // ── Profile ───────────────────────────────────────────────────────────
-  function loadProfile(tag) {
-    document.getElementById('prof-name').value = tag.profile_name || '';
-    document.getElementById('prof-bio').value  = tag.bio || '';
-    document.getElementById('prof-preview').href = `/r?id=${TAG_ID}`;
-  }
-  async function saveProfile() {
-    const profile_name = document.getElementById('prof-name').value.trim();
-    const bio          = document.getElementById('prof-bio').value.trim();
-    await fetch(`/tags/${TAG_ID}/profile`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile_name: profile_name || null, bio: bio || null })
-    });
-    const saved = document.getElementById('prof-saved');
-    saved.style.display = 'block';
-    setTimeout(() => { saved.style.display = 'none'; }, 2000);
-  }
 
   // ── Utils ─────────────────────────────────────────────────────────────
   function esc(s) {
@@ -322,16 +294,31 @@
   function renderHeader(editing=false) {
     const a = document.getElementById('header-area');
     if (editing) {
-      a.innerHTML = `<div class="ne-wrap"><input id="ni" type="text" maxlength="50" placeholder="Tag name" value="${esc(currentNickname)}"><button class="btn-txt" onclick="renderHeader(false)">Cancel</button><button class="btn-done" onclick="saveNick()">Done</button></div>`;
+      a.innerHTML = `
+        <div class="he-edit lg">
+          <label class="he-lbl">Tag Name</label>
+          <input class="he-inp" id="ni" type="text" maxlength="50" placeholder="My Tag" value="${esc(currentNickname)}">
+          <label class="he-lbl">Description</label>
+          <input class="he-inp" id="ndesc" type="text" maxlength="200" placeholder="Short tagline shown to visitors" value="${esc(currentBio)}">
+          <div class="he-acts">
+            <button class="btn-done" onclick="saveNick()">Done</button>
+            <button class="btn-txt" onclick="renderHeader(false)">Cancel</button>
+          </div>
+        </div>`;
       document.getElementById('ni').focus();
     } else {
-      a.innerHTML = `<div class="tag-header lg gap"><div><div class="tag-name">${esc(currentNickname||TAG_ID)}</div><div class="tag-sub">${TAG_ID}</div></div><button class="btn-rename" onclick="renderHeader(true)">✎</button></div>`;
+      const bioHtml = currentBio ? `<div class="tag-bio">${esc(currentBio)}</div>` : '';
+      a.innerHTML = `<div class="tag-header lg gap"><div><div class="tag-name">${esc(currentNickname||TAG_ID)}</div>${bioHtml}<div class="tag-sub">${TAG_ID}</div></div><button class="btn-rename" onclick="renderHeader(true)">✎</button></div>`;
     }
   }
   async function saveNick() {
-    const val = document.getElementById('ni')?.value.trim()||'';
-    await fetch(`/tags/${TAG_ID}/nickname`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:val||null})});
-    currentNickname=val; renderHeader(false);
+    const name = document.getElementById('ni')?.value.trim() || '';
+    const desc = document.getElementById('ndesc')?.value.trim() || '';
+    await fetch(`/tags/${TAG_ID}/nickname`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:name||null})});
+    await fetch(`/tags/${TAG_ID}/profile`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile_name:name||null,bio:desc||null})});
+    currentNickname = name;
+    currentBio = desc;
+    renderHeader(false);
   }
 
   // ── Mode ──────────────────────────────────────────────────────────────
@@ -352,9 +339,10 @@
     const tags=await(await fetch('/tags/my')).json();
     const tag=tags.find(t=>t.id===TAG_ID);
     if(!tag) return;
-    currentNickname=tag.nickname||''; renderHeader(false);
+    currentNickname = tag.nickname || '';
+    currentBio = tag.bio || '';
+    renderHeader(false);
     applyMode(tag.mode||'DIRECT');
-    loadProfile(tag);
   }
 
   // ── Data ──────────────────────────────────────────────────────────────
@@ -649,6 +637,16 @@
     const ordered=getOrderedLinks();
     if(!ordered.length){ area.innerHTML='<p class="sh">Links</p><p class="empty">No links yet.</p>'; return; }
     area.innerHTML=`
+      <p class="sh">Preview</p>
+      <div class="preview-card lg">
+        <div class="preview-bar">
+          <span>Visitor View</span>
+          <a href="/r?id=${TAG_ID}" target="_blank">Open ↗</a>
+        </div>
+        <div class="preview-frame">
+          <iframe src="/r?id=${TAG_ID}" scrolling="no"></iframe>
+        </div>
+      </div>
       <p class="sh">Links</p>
       <div class="grouped lg gap" id="dlist">
         ${ordered.map(l=>`
