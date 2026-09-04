@@ -175,21 +175,27 @@
       opacity: 1 !important;
     }
 
-    /* Ring nodes — just the favicon, no circle bg */
+    /* Ring nodes — glass style */
     .rn {
       position: absolute;
-      transform: translate(-50%, -50%);
-      width: 32px; height: 32px;
+      transform: translate(-50%, -50%) scale(0.88);
+      width: 52px; height: 52px;
+      border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; z-index: 4;
-      opacity: 0.5;
-      transition: opacity .22s, transform .22s, filter .22s;
+      opacity: 0.40;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.10);
+      box-shadow: none;
+      transition: opacity .28s, transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .28s, background .28s, border-color .28s;
     }
-    .rn.hover { opacity: 0.85; }
+    .rn.hover { opacity: 0.70; }
     .rn.active {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1.45);
-      filter: drop-shadow(0 0 8px rgba(255,255,255,0.55)) drop-shadow(0 0 22px rgba(255,255,255,0.20));
+      transform: translate(-50%, -50%) scale(1.38);
+      background: rgba(255,255,255,0.13);
+      border-color: rgba(255,255,255,0.35);
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.18), 0 0 22px rgba(255,255,255,0.25), 0 6px 20px rgba(0,0,0,0.5);
       z-index: 5;
     }
     .rn img, .rn .rn-em {
@@ -200,7 +206,6 @@
     .rn .rn-em {
       display: flex; align-items: center; justify-content: center;
       font-size: 18px;
-      filter: none;
     }
 
     /* ══ Grouped list ══ */
@@ -569,11 +574,11 @@
           n.style.transform=''; n.style.opacity=''; n.style.zIndex='';
         } else {
           n.classList.remove('snapping');
-          const baseScale=isActive?1.45:1;
-          const sc=baseScale+(0.6*ease);
+          const baseScale=isActive?1.38:0.88;
+          const sc=baseScale+(0.5*ease);
           n.style.transform=`translate(-50%,-50%) scale(${sc.toFixed(3)})`;
           n.style.transition='transform .06s';
-          n.style.opacity=isActive?'1':(0.5+0.5*ease).toFixed(3);
+          n.style.opacity=isActive?'1':(0.40+0.50*ease).toFixed(3);
           n.style.zIndex=isActive?'5':String(Math.round(2+ease*3));
         }
       });
