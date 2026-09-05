@@ -148,26 +148,33 @@
       z-index: 1;
     }
 
-    /* Center drag handle — invisible interaction zone only */
-    .ring-cen {
+    /* Glass water-drop blob */
+    .ring-blob {
       position: absolute;
-      left: 140px; top: 140px;
-      transform: translate(-50%, -50%);
-      width: 70px; height: 70px;   /* larger hit area */
+      left: 0; top: 0;
+      width: 56px; height: 56px;
       border-radius: 50%;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      cursor: grab;
       z-index: 6;
-      transition:
-        left .42s cubic-bezier(.34,1.56,.64,1),
-        top  .42s cubic-bezier(.34,1.56,.64,1);
+      will-change: transform;
+      cursor: grab;
+      touch-action: none;
+      pointer-events: auto;
+      background: transparent;
+      border: 0.5px solid rgba(255,255,255,0.45);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.32);
     }
-    .ring-cen::before { display: none; }
-    .ring-cen.dragging { cursor: grabbing; transition: none; }
+    .ring-blob.dragging { cursor: grabbing; }
+    .ring-blob-inner {
+      position: absolute; inset: 0; border-radius: 50%;
+      backdrop-filter: blur(7px) saturate(200%) brightness(1.25);
+      -webkit-backdrop-filter: blur(7px) saturate(200%) brightness(1.25);
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 63%, #000 80%);
+      mask-image: radial-gradient(circle at 50% 50%, transparent 63%, #000 80%);
+    }
+    .ring-blob-shine {
+      position: absolute; inset: 0; border-radius: 50%;
+      box-shadow: inset 1.5px 2px 2px rgba(255,255,255,0.6), inset -2px -2.5px 3px rgba(255,255,255,0.25);
+    }
 
     /* Node snap glow */
     .rn.snapping {
@@ -387,14 +394,37 @@
       <p class="sh">Active Link</p>
       <div class="ring-outer gap">
         <div class="ring-wrap" id="ring-wrap">
-          <svg class="ring-svg" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg"></svg>
+          <!-- SVG goo layer -->
+          <svg id="ring-goo-svg" style="position:absolute;left:0;top:0;width:280px;height:280px;pointer-events:none;z-index:3;overflow:visible">
+            <defs>
+              <filter id="lrsGoo" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur"/>
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11"/>
+              </filter>
+            </defs>
+            <g id="goo-group" filter="url(#lrsGoo)" fill="#ffffff" opacity="0.18">
+              <circle id="goo-anchor" cx="140" cy="140" r="0"/>
+              <ellipse id="goo-mid" cx="140" cy="140" rx="0" ry="0"/>
+              <circle id="goo-target" cx="140" cy="140" r="0"/>
+              <ellipse id="goo-main" cx="140" cy="140" rx="26" ry="26"/>
+              <g id="goo-drops">
+                <circle r="0"/><circle r="0"/><circle r="0"/>
+                <circle r="0"/><circle r="0"/><circle r="0"/>
+              </g>
+            </g>
+          </svg>
+          <!-- Ripple ring -->
+          <div id="ring-ripple" style="position:absolute;width:80px;height:80px;margin:-40px 0 0 -40px;border-radius:50%;border:2px solid rgba(255,255,255,.55);opacity:0;z-index:2;pointer-events:none"></div>
           <!-- Nodes -->
           ${ordered.map((l,i)=>`
             <div class="rn${l.id===activeId?' active':''}" data-id="${l.id}" data-i="${i}">
               ${nodeIcon(l.url)}
             </div>`).join('')}
-          <!-- Center drag zone (invisible) -->
-          <div class="ring-cen" id="ring-cen"></div>
+          <!-- Glass water-drop blob -->
+          <div class="ring-blob" id="ring-blob">
+            <div class="ring-blob-inner"></div>
+            <div class="ring-blob-shine"></div>
+          </div>
         </div>
       </div>
       <p class="sh">All Links</p>
@@ -409,36 +439,7 @@
       </div>`;
 
     positionNodes();
-
-    // ── Goo SVG filter (inject once) ──────────────────────────────────────
-    if (!document.getElementById('goo-svg')) {
-      const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
-      s.id = 'goo-svg';
-      s.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;');
-      s.innerHTML = `<defs>
-        <filter id="gooey" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
-          <feColorMatrix in="blur" type="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"/>
-        </filter>
-      </defs>`;
-      document.body.appendChild(s);
-    }
-
-    // ── Goo layer (water drop blobs) inside ring-wrap ─────────────────────
-    const gl = document.createElement('div');
-    gl.id = 'goo-layer';
-    gl.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:3;filter:url(#gooey);';
-    ['goo-a','goo-t','goo-b'].forEach(id => {
-      const d = document.createElement('div');
-      d.id = id;
-      d.style.cssText = 'position:absolute;border-radius:99px;background:rgba(200,225,255,0.92);opacity:0;pointer-events:none;';
-      gl.appendChild(d);
-    });
-    document.getElementById('ring-wrap').appendChild(gl);
-
     bindRing();
-    setRestingBlob(activeId);
   }
 
   const CX=140, CY=140, R=98;
@@ -450,18 +451,6 @@
         pos={x:parseFloat(n.style.left),y:parseFloat(n.style.top)};
     });
     return pos||{x:CX,y:CY};
-  }
-  function setRestingBlob(id) {
-    const gB=document.getElementById('goo-b');
-    if(!gB) return;
-    const p=getNodePos(id);
-    const sz=26;
-    gB.style.transition='left .42s cubic-bezier(.34,1.56,.64,1),top .42s cubic-bezier(.34,1.56,.64,1),width .28s,height .28s,opacity .3s';
-    gB.style.width  =sz+'px';
-    gB.style.height =sz+'px';
-    gB.style.left   =(p.x-sz/2)+'px';
-    gB.style.top    =(p.y-sz/2)+'px';
-    gB.style.opacity='0.68';
   }
 
   function positionNodes() {
@@ -475,173 +464,198 @@
   }
 
   function bindRing() {
-    // Remove any lingering window listeners from a previous render
     if (_moveDrag) window.removeEventListener('pointermove', _moveDrag);
     if (_endDrag)  window.removeEventListener('pointerup',   _endDrag);
+    if (window._ringRAF) cancelAnimationFrame(window._ringRAF);
 
-    const cen  = document.getElementById('ring-cen');
+    const blob = document.getElementById('ring-blob');
     const wrap = document.getElementById('ring-wrap');
-    let dragging=false, hoveredId=null;
+    if (!blob || !wrap) return;
 
-    // Desktop: direct click on any node
+    const BLOB_R = 28; // half of 56px blob
+    const SNAP_R = 70;
+    const STIFF  = 0.24;
+    const DAMP   = 0.76;
+    const BORDER_R = R + 22; // max drag radius from center
+
+    // Spring state
+    let pos = { ...getNodePos(activeId) };
+    let vel = { x:0, y:0 };
+    let ptr = { ...pos };
+    let dragging = false;
+    let hover = null; // hovered node element
+    let hoveredId = null;
+    let rip = { t:1, x:140, y:140 };
+    let drops = [];
+
+    function relPt(e) {
+      const r = wrap.getBoundingClientRect();
+      const src = e.touches ? e.touches[0] : e;
+      return { x: src.clientX - r.left, y: src.clientY - r.top };
+    }
+
+    function splash(x, y) {
+      rip = { t:0, x, y };
+      drops = [];
+      for (let i=0; i<6; i++) {
+        const a = (Math.PI*2*i/6) + Math.random();
+        drops.push({ x, y, vx: Math.cos(a)*(1.4+Math.random()), vy: Math.sin(a)*(1.4+Math.random()), t:0 });
+      }
+    }
+
+    // Click on nodes
     document.querySelectorAll('.rn').forEach(node=>{
       node.addEventListener('click', ()=>selectNode(parseInt(node.dataset.id)));
     });
 
-    // Pointer position relative to ring-wrap
-    function relPt(e) {
-      const r=wrap.getBoundingClientRect();
-      const src=e.touches?e.touches[0]:e;
-      return { x:src.clientX-r.left, y:src.clientY-r.top };
-    }
-
-    // Nearest node within 70px
-    function nearestNode(x,y) {
-      let best=null, bestD=Infinity;
-      document.querySelectorAll('.rn').forEach(n=>{
-        const nx=parseFloat(n.style.left), ny=parseFloat(n.style.top);
-        const d=Math.hypot(x-nx,y-ny);
-        if(d<bestD){bestD=d;best=n;}
-      });
-      return bestD<70?best:null;
-    }
-
-    function startDrag(e) {
-      dragging=true;
-      cen.classList.add('dragging');
-      cen.style.opacity='0'; // goo layer takes over visually
-      const gB=document.getElementById('goo-b');
-      if(gB) gB.style.transition='none'; // instant during drag
+    blob.addEventListener('pointerdown', e => {
+      const p = relPt(e);
+      const d = Math.hypot(p.x - pos.x, p.y - pos.y);
+      if (d > BLOB_R + 10) return;
+      dragging = true;
+      ptr = p;
+      blob.classList.add('dragging');
+      blob.setPointerCapture && blob.setPointerCapture(e.pointerId);
       e.preventDefault();
-    }
+    });
 
     _moveDrag = function(e) {
-      if(!dragging) return;
-      const {x,y}=relPt(e);
-
-      // ── Magnetic snap ──────────────────────────────────────────
-      const SNAP_R = 72;
-      let mx=x, my=y, snapNode=null, snapDist=Infinity;
-      document.querySelectorAll('.rn').forEach(n=>{
-        const nx=parseFloat(n.style.left), ny=parseFloat(n.style.top);
-        const d=Math.hypot(x-nx, y-ny);
-        if(d<SNAP_R && d<snapDist){ snapDist=d; snapNode=n; }
-      });
-      if(snapNode){
-        const nx=parseFloat(snapNode.style.left), ny=parseFloat(snapNode.style.top);
-        const t=1-snapDist/SNAP_R;
-        const pull=t*t*0.85; // quadratic, max 85% pull at center
-        mx=x+(nx-x)*pull;
-        my=y+(ny-y)*pull;
-      }
-
-      // Center handle follows (snapped) position
-      cen.style.left = mx + 'px';
-      cen.style.top  = my + 'px';
-
-      // ── Goo water drop effect ──────────────────────────────────────────
-      const gA = document.getElementById('goo-a');
-      const gT = document.getElementById('goo-t');
-      const gB = document.getElementById('goo-b');
-      if (gA && gT && gB) {
-        // Blob A — always visible during drag
-        const sA = snapNode ? 18 + (1-snapDist/SNAP_R)*12 : 22;
-        gA.style.width   = sA + 'px';
-        gA.style.height  = sA + 'px';
-        gA.style.left    = (mx - sA/2) + 'px';
-        gA.style.top     = (my - sA/2) + 'px';
-        gA.style.opacity = '0.92';
-
-        if (snapNode) {
-          const pull = 1 - snapDist/SNAP_R;
-          const nx2  = parseFloat(snapNode.style.left);
-          const ny2  = parseFloat(snapNode.style.top);
-
-          // Blob B — expands at target node
-          const sB = 12 + pull * 24;
-          gB.style.width   = sB + 'px';
-          gB.style.height  = sB + 'px';
-          gB.style.left    = (nx2 - sB/2) + 'px';
-          gB.style.top     = (ny2 - sB/2) + 'px';
-          gB.style.opacity = (0.2 + pull*0.72).toFixed(2);
-
-          // Tendril — liquid bridge between A and B
-          const tLen   = Math.hypot(nx2-mx, ny2-my);
-          const tAngle = Math.atan2(ny2-my, nx2-mx) * 180/Math.PI;
-          const tH     = Math.max(1.5, 11 * pull);
-          const tcx    = (mx + nx2)/2, tcy = (my + ny2)/2;
-          gT.style.width           = tLen + 'px';
-          gT.style.height          = tH + 'px';
-          gT.style.left            = (tcx - tLen/2) + 'px';
-          gT.style.top             = (tcy - tH/2) + 'px';
-          gT.style.transform       = `rotate(${tAngle}deg)`;
-          gT.style.transformOrigin = 'center center';
-          gT.style.opacity         = (0.15 + pull*0.68).toFixed(2);
-        } else {
-          gT.style.opacity = '0';
-          // keep resting blob at active node while dragging elsewhere
-          const ap=getNodePos(activeId); const sz=26;
-          gB.style.width=sz+'px'; gB.style.height=sz+'px';
-          gB.style.left=(ap.x-sz/2)+'px'; gB.style.top=(ap.y-sz/2)+'px';
-          gB.style.opacity='0.55';
-        }
-      }
-
-      // ── Dock magnification (from snapped position) ─────────────
-      document.querySelectorAll('.rn').forEach(n=>{
-        const nx=parseFloat(n.style.left), ny=parseFloat(n.style.top);
-        const dist=Math.hypot(mx-nx, my-ny);
-        const t=Math.max(0, 1-dist/120);
-        const ease=t*t*(3-2*t);
-        const isActive=n.classList.contains('active');
-        const isSnapping=snapNode&&n===snapNode&&(1-snapDist/SNAP_R)>0.55;
-        if(isSnapping){
-          n.classList.add('snapping');
-          n.style.transform=''; n.style.opacity=''; n.style.zIndex='';
-        } else {
-          n.classList.remove('snapping');
-          const baseScale=isActive?1.45:0.82;
-          const sc=baseScale+(0.5*ease);
-          n.style.transform=`translate(-50%,-50%) scale(${sc.toFixed(3)})`;
-          n.style.transition='transform .06s';
-          n.style.opacity=isActive?'1':(0.45+0.50*ease).toFixed(3);
-          n.style.zIndex=isActive?'5':String(Math.round(2+ease*3));
-        }
-      });
-
-      // Nearest-node hover + hoveredId from snapped position
-      const node=nearestNode(mx,my);
-      document.querySelectorAll('.rn').forEach(n=>{ if(!n.classList.contains('snapping')) n.classList.remove('hover'); });
-      if(node&&!node.classList.contains('snapping')) node.classList.add('hover');
-      hoveredId=snapNode?parseInt(snapNode.dataset.id):(node?parseInt(node.dataset.id):null);
+      if (!dragging) return;
+      ptr = relPt(e);
       e.preventDefault();
     };
 
     _endDrag = function() {
-      if(!dragging) return;
-      dragging=false;
-      cen.classList.remove('dragging'); // re-enables spring transition
-      // Snap back to center — spring animation from CSS takes over
-      cen.style.left = CX + 'px';
-      cen.style.top  = CY + 'px';
-      document.querySelectorAll('.rn').forEach(n=>{
-        n.style.transform=''; n.style.opacity='';
-        n.style.transition=''; n.style.zIndex='';
-        n.classList.remove('hover','snapping');
-      });
-      // Reset goo blobs: hide cursor + tendril, keep resting blob
-      ['goo-a','goo-t'].forEach(id=>{
-        const el=document.getElementById(id); if(el) el.style.opacity='0';
-      });
-      cen.style.opacity='1';
-      if(hoveredId!==null) selectNode(hoveredId);
-      setRestingBlob(activeId);
-      hoveredId=null;
+      if (!dragging) return;
+      dragging = false;
+      blob.classList.remove('dragging');
+      if (hoveredId !== null && hoveredId !== activeId) {
+        selectNode(hoveredId);
+        splash(...Object.values(getNodePos(hoveredId)));
+      }
+      hoveredId = null; hover = null;
+      document.querySelectorAll('.rn').forEach(n=>n.classList.remove('hover','snapping'));
     };
 
-    cen.addEventListener('pointerdown', startDrag);
     window.addEventListener('pointermove', _moveDrag, {passive:false});
     window.addEventListener('pointerup',   _endDrag);
+
+    // ── rAF spring loop ─────────────────────────────────────────────────
+    function tick() {
+      // Target
+      let tx, ty, prox = 0;
+      if (dragging) {
+        tx = ptr.x; ty = ptr.y;
+        // Magnetic snap
+        let snapEl = null, snapDist = Infinity;
+        document.querySelectorAll('.rn').forEach(n=>{
+          const nx=parseFloat(n.style.left), ny=parseFloat(n.style.top);
+          const d=Math.hypot(tx-nx, ty-ny);
+          if(d < SNAP_R && d < snapDist){ snapDist=d; snapEl=n; }
+        });
+        if (snapEl) {
+          const nx=parseFloat(snapEl.style.left), ny=parseFloat(snapEl.style.top);
+          const t=1-snapDist/SNAP_R;
+          const pull=t*t*0.96;
+          tx += (nx-tx)*pull; ty += (ny-ty)*pull;
+          prox = t;
+          hover = snapEl; hoveredId = parseInt(snapEl.dataset.id);
+        } else { hover = null; hoveredId = null; }
+        // Clamp to border
+        const dc=Math.hypot(tx-CX, ty-CY);
+        if(dc > BORDER_R){ const k=BORDER_R/dc; tx=CX+(tx-CX)*k; ty=CY+(ty-CY)*k; }
+      } else {
+        const a = getNodePos(activeId);
+        tx=a.x; ty=a.y;
+      }
+
+      // Spring step
+      vel.x = (vel.x + (tx-pos.x)*STIFF)*DAMP;
+      vel.y = (vel.y + (ty-pos.y)*STIFF)*DAMP;
+      pos.x += vel.x; pos.y += vel.y;
+
+      // Squish along velocity
+      const sp = Math.hypot(vel.x, vel.y);
+      const absorb = Math.max(0, 1 - rip.t*1.6);
+      const merge = Math.max(prox, absorb);
+      let ang = Math.atan2(vel.y, vel.x) * 180/Math.PI;
+      let s = Math.min(0.22, sp*0.014);
+      if(merge > 0.02){
+        const c = hover ? {x:parseFloat(hover.style.left),y:parseFloat(hover.style.top)} : getNodePos(activeId);
+        const dx=c.x-pos.x, dy=c.y-pos.y;
+        if(Math.hypot(dx,dy)>1.5) ang=Math.atan2(dy,dx)*180/Math.PI;
+        s = Math.min(0.42, s+merge*0.34);
+      }
+      blob.style.transform = `translate(${pos.x-BLOB_R}px,${pos.y-BLOB_R}px) rotate(${ang}deg) scale(${1+s},${1-s*0.82}) rotate(${-ang}deg)`;
+
+      // SVG goo
+      const a = getNodePos(activeId);
+      const d = Math.hypot(pos.x-a.x, pos.y-a.y);
+      const neck = Math.max(0, 1-d/150) * (1+merge*0.5);
+      const gGroup = document.getElementById('goo-group');
+      const gAnchor = document.getElementById('goo-anchor');
+      const gMid    = document.getElementById('goo-mid');
+      const gMain   = document.getElementById('goo-main');
+      const gTarget = document.getElementById('goo-target');
+      const gDrops  = document.getElementById('goo-drops');
+      if(gGroup && gAnchor && gMid && gMain && gTarget) {
+        gGroup.setAttribute('opacity', String(0.18+merge*0.28));
+        gAnchor.setAttribute('cx',a.x); gAnchor.setAttribute('cy',a.y);
+        gAnchor.setAttribute('r', String(5+14*neck));
+        gMid.setAttribute('cx',(pos.x+a.x)/2); gMid.setAttribute('cy',(pos.y+a.y)/2);
+        gMid.setAttribute('rx', String(3+14*neck)); gMid.setAttribute('ry', String(3+14*neck));
+        gMain.setAttribute('cx',pos.x); gMain.setAttribute('cy',pos.y);
+        gMain.setAttribute('rx', String(26*(1+s*0.9))); gMain.setAttribute('ry', String(26*(1-s*0.8)));
+        gMain.setAttribute('transform',`rotate(${ang} ${pos.x} ${pos.y})`);
+        if(hover) {
+          const hx=parseFloat(hover.style.left), hy=parseFloat(hover.style.top);
+          gTarget.setAttribute('cx',hx); gTarget.setAttribute('cy',hy);
+          gTarget.setAttribute('r', String(6+22*prox));
+          const mx=(pos.x+hx)/2, my=(pos.y+hy)/2, nk=6+18*prox;
+          gMid.setAttribute('cx',mx); gMid.setAttribute('cy',my);
+          gMid.setAttribute('rx',String(nk)); gMid.setAttribute('ry',String(nk));
+        } else { gTarget.setAttribute('r','0'); }
+      }
+
+      // Ripple
+      const rp = document.getElementById('ring-ripple');
+      if(rp){
+        if(rip.t < 1){
+          rip.t = Math.min(1, rip.t+0.045);
+          const e=1-Math.pow(1-rip.t,3);
+          rp.style.transform=`translate(${rip.x}px,${rip.y}px) scale(${0.4+e*1.2})`;
+          rp.style.opacity=String((1-e)*0.75);
+        } else { rp.style.opacity='0'; }
+      }
+
+      // Drops
+      if(gDrops){
+        const dn=gDrops.children;
+        for(let i=0;i<dn.length;i++){
+          const p=drops[i];
+          if(!p||p.t>=1){dn[i].setAttribute('r','0');continue;}
+          p.t=Math.min(1,p.t+0.04);
+          p.x+=p.vx*(1-p.t); p.y+=p.vy*(1-p.t);
+          dn[i].setAttribute('cx',p.x); dn[i].setAttribute('cy',p.y);
+          dn[i].setAttribute('r',String(6*(1-p.t)));
+        }
+      }
+
+      // Icon highlight
+      document.querySelectorAll('.rn').forEach(n=>{
+        const isAct=parseInt(n.dataset.id)===activeId;
+        const isHov=n===hover;
+        n.classList.toggle('active',isAct);
+        n.classList.toggle('hover',isHov&&!isAct);
+        n.classList.toggle('snapping',isHov&&prox>0.55);
+      });
+
+      window._ringRAF = requestAnimationFrame(tick);
+    }
+    window._ringRAF = requestAnimationFrame(tick);
+
+    // Initial splash
+    splash(...Object.values(getNodePos(activeId)));
   }
 
   async function selectNode(id) {
@@ -650,7 +664,6 @@
     document.querySelectorAll('.rn').forEach(n=>{
       n.classList.toggle('active', parseInt(n.dataset.id)===id);
     });
-    setRestingBlob(id);
 
     const ordered=getOrderedLinks();
     const picked=ordered.find(l=>l.id===id);
