@@ -150,20 +150,14 @@
 
     /* Glass water-drop blob */
     .ring-blob {
-      position: absolute;
-      left: 0; top: 0;
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      z-index: 6;
-      will-change: transform;
-      cursor: grab;
-      touch-action: none;
-      pointer-events: auto;
+      position: absolute; left: 0; top: 0;
+      width: 68px; height: 68px; border-radius: 50%;
+      z-index: 6; will-change: transform;
       background: transparent;
-      border: 0.5px solid rgba(255,255,255,0.45);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.32);
+      border: 0.5px solid rgba(255,255,255,.42);
+      box-shadow: 0 8px 20px rgba(0,0,0,.28);
+      touch-action: none; pointer-events: none;
     }
-    .ring-blob.dragging { cursor: grabbing; }
     .ring-blob-inner {
       position: absolute; inset: 0; border-radius: inherit;
       backdrop-filter: blur(7px) saturate(200%) brightness(1.25);
@@ -172,8 +166,8 @@
       mask-image: radial-gradient(closest-side ellipse at 50% 50%, transparent 62%, #000 82%);
     }
     .ring-blob-shine {
-      position: absolute; inset: 0; border-radius: 50%;
-      box-shadow: inset 1.5px 2px 2px rgba(255,255,255,0.6), inset -2px -2.5px 3px rgba(255,255,255,0.25);
+      position: absolute; inset: 0; border-radius: inherit;
+      box-shadow: inset 1.5px 2px 2px rgba(255,255,255,.6), inset -2px -2.5px 3px rgba(255,255,255,.3);
     }
 
     /* Node snap glow */
@@ -472,197 +466,201 @@
     const wrap = document.getElementById('ring-wrap');
     if (!blob || !wrap) return;
 
-    const BLOB_R = 28; // half of 56px blob
-    const SNAP_R = 70;
-    const STIFF  = 0.24;
-    const DAMP   = 0.76;
-    const BORDER_R = R + 22; // max drag radius from center
+    // ── Constants (mirrors Liquid Ring Selector) ─────────────────────────
+    const BH      = 34;   // blob half-size (68px)
+    const SNAP_R  = 74;
+    const STIFF   = 0.24;
+    const DAMP    = 0.76;
 
-    // Spring state
+    // ── Spring state ─────────────────────────────────────────────────────
     let pos = { ...getNodePos(activeId) };
     let vel = { x:0, y:0 };
     let ptr = { ...pos };
     let dragging = false;
-    let hover = null; // hovered node element
-    let hoveredId = null;
-    let rip = { t:1, x:140, y:140 };
+    let hoverIdx = -1;   // index in orderedNodes()
+    let rip = { t:1, x:CX, y:CY };
     let drops = [];
+    let downAt = 0;
 
-    function relPt(e) {
+    function orderedNodes() { return Array.from(document.querySelectorAll('.rn')); }
+
+    function local(e) {
       const r = wrap.getBoundingClientRect();
       const src = e.touches ? e.touches[0] : e;
-      return { x: src.clientX - r.left, y: src.clientY - r.top };
+      return { x: src.clientX-r.left, y: src.clientY-r.top };
+    }
+
+    function nearest(x, y) {
+      let best = { i:-1, d:1e9, x:0, y:0 };
+      orderedNodes().forEach((n,i)=>{
+        const nx=parseFloat(n.style.left), ny=parseFloat(n.style.top);
+        const d=Math.hypot(nx-x, ny-y);
+        if(d<best.d) best={i,d,x:nx,y:ny};
+      });
+      return best;
     }
 
     function splash(x, y) {
-      rip = { t:0, x, y };
-      drops = [];
-      for (let i=0; i<6; i++) {
-        const a = (Math.PI*2*i/6) + Math.random();
-        drops.push({ x, y, vx: Math.cos(a)*(1.4+Math.random()), vy: Math.sin(a)*(1.4+Math.random()), t:0 });
+      rip={t:0,x,y}; drops=[];
+      for(let i=0;i<6;i++){
+        const a=(Math.PI*2*i)/6+Math.random();
+        drops.push({x,y,vx:Math.cos(a)*(1.6+Math.random()),vy:Math.sin(a)*(1.6+Math.random()),t:0});
       }
+      if(navigator.vibrate) navigator.vibrate(8);
     }
 
-    // Click on nodes
-    document.querySelectorAll('.rn').forEach(node=>{
-      node.addEventListener('click', ()=>selectNode(parseInt(node.dataset.id)));
+    // Tap icon nodes directly
+    wrap.addEventListener('click', e=>{
+      if(Date.now()-downAt>400) return;
+      const el=e.target.closest&&e.target.closest('[data-id]');
+      if(!el) return;
+      const id=parseInt(el.dataset.id);
+      if(id===activeId) return;
+      const p=getNodePos(id); splash(p.x,p.y);
+      selectNode(id);
     });
 
-    blob.addEventListener('pointerdown', e => {
-      const p = relPt(e);
-      const d = Math.hypot(p.x - pos.x, p.y - pos.y);
-      if (d > BLOB_R + 10) return;
-      dragging = true;
-      ptr = p;
-      blob.classList.add('dragging');
-      blob.setPointerCapture && blob.setPointerCapture(e.pointerId);
-      e.preventDefault();
-    });
+    // Pointer on wrap — start drag if near blob
+    const onDown=(e)=>{
+      const p=local(e);
+      const d=Math.hypot(p.x-pos.x, p.y-pos.y);
+      downAt=Date.now();
+      if(d>BH+14) return;
+      dragging=true; ptr=p;
+      wrap.setPointerCapture&&wrap.setPointerCapture(e.pointerId);
+      e.stopPropagation(); e.preventDefault();
+    };
+    wrap.addEventListener('pointerdown', onDown);
 
-    _moveDrag = function(e) {
-      if (!dragging) return;
-      ptr = relPt(e);
-      e.preventDefault();
+    _moveDrag=function(e){
+      if(dragging){ ptr=local(e); e.preventDefault(); }
     };
 
-    _endDrag = function() {
-      if (!dragging) return;
-      dragging = false;
-      blob.classList.remove('dragging');
-      if (hoveredId !== null && hoveredId !== activeId) {
-        selectNode(hoveredId);
-        splash(...Object.values(getNodePos(hoveredId)));
+    _endDrag=function(){
+      if(!dragging) return;
+      dragging=false;
+      if(hoverIdx>=0){
+        const nodes=orderedNodes();
+        if(nodes[hoverIdx]){
+          const id=parseInt(nodes[hoverIdx].dataset.id);
+          if(id!==activeId){
+            const p=getNodePos(id); splash(p.x,p.y);
+            selectNode(id);
+          }
+        }
       }
-      hoveredId = null; hover = null;
-      document.querySelectorAll('.rn').forEach(n=>n.classList.remove('hover','snapping'));
+      hoverIdx=-1;
     };
 
-    window.addEventListener('pointermove', _moveDrag, {passive:false});
-    window.addEventListener('pointerup',   _endDrag);
+    window.addEventListener('pointermove',_moveDrag,{passive:false});
+    window.addEventListener('pointerup',_endDrag);
 
-    // ── rAF spring loop ─────────────────────────────────────────────────
+    // ── rAF tick — exact Liquid Ring Selector physics ────────────────────
+    const gGroup  = document.getElementById('goo-group');
+    const gAnchor = document.getElementById('goo-anchor');
+    const gMid    = document.getElementById('goo-mid');
+    const gMain   = document.getElementById('goo-main');
+    const gTarget = document.getElementById('goo-target');
+    const gDrops  = document.getElementById('goo-drops');
+    const rp      = document.getElementById('ring-ripple');
+
     function tick() {
-      // Target
-      let tx, ty, prox = 0;
-      if (dragging) {
-        tx = ptr.x; ty = ptr.y;
-        // Magnetic snap
-        let snapEl = null, snapDist = Infinity;
-        document.querySelectorAll('.rn').forEach(n=>{
-          const nx=parseFloat(n.style.left), ny=parseFloat(n.style.top);
-          const d=Math.hypot(tx-nx, ty-ny);
-          if(d < SNAP_R && d < snapDist){ snapDist=d; snapEl=n; }
-        });
-        if (snapEl) {
-          const nx=parseFloat(snapEl.style.left), ny=parseFloat(snapEl.style.top);
-          const t=1-snapDist/SNAP_R;
-          const pull=t*t*0.96;
-          tx += (nx-tx)*pull; ty += (ny-ty)*pull;
-          prox = t;
-          hover = snapEl; hoveredId = parseInt(snapEl.dataset.id);
-        } else { hover = null; hoveredId = null; }
-        // Clamp to border
-        const dc=Math.hypot(tx-CX, ty-CY);
-        if(dc > BORDER_R){ const k=BORDER_R/dc; tx=CX+(tx-CX)*k; ty=CY+(ty-CY)*k; }
+      let tx,ty,prox=0;
+      if(dragging){
+        tx=ptr.x; ty=ptr.y;
+        const n=nearest(tx,ty);
+        if(n.d<SNAP_R){
+          const t=1-n.d/SNAP_R; prox=t;
+          const e=t*t*0.96;
+          tx+=(n.x-tx)*e; ty+=(n.y-ty)*e;
+          hoverIdx=n.i;
+        } else { hoverIdx=-1; }
+        const dc=Math.hypot(tx-CX,ty-CY);
+        if(dc>R+26){const k=(R+26)/dc;tx=CX+(tx-CX)*k;ty=CY+(ty-CY)*k;}
       } else {
-        const a = getNodePos(activeId);
-        tx=a.x; ty=a.y;
+        const a=getNodePos(activeId); tx=a.x; ty=a.y;
       }
 
-      // Spring step
-      vel.x = (vel.x + (tx-pos.x)*STIFF)*DAMP;
-      vel.y = (vel.y + (ty-pos.y)*STIFF)*DAMP;
-      pos.x += vel.x; pos.y += vel.y;
+      vel.x=(vel.x+(tx-pos.x)*STIFF)*DAMP;
+      vel.y=(vel.y+(ty-pos.y)*STIFF)*DAMP;
+      pos.x+=vel.x; pos.y+=vel.y;
 
-      // Squish + organic deform
-      const sp = Math.hypot(vel.x, vel.y);
-      const absorb = Math.max(0, 1 - rip.t*1.5);
-      const merge = Math.max(prox, absorb);
-      let ang = Math.atan2(vel.y, vel.x) * 180/Math.PI;
-      let s = Math.min(0.18, sp*0.013);
-      if(merge > 0.02){
-        const c = hover ? {x:parseFloat(hover.style.left),y:parseFloat(hover.style.top)} : getNodePos(activeId);
-        const dx=c.x-pos.x, dy=c.y-pos.y;
+      const sp=Math.hypot(vel.x,vel.y);
+      const absorb=Math.max(0,1-rip.t*1.5);
+      const merge=Math.max(prox,absorb);
+      let ang=Math.atan2(vel.y,vel.x)*180/Math.PI;
+      let s=Math.min(0.18,sp*0.013);
+      if(merge>0.02){
+        const nodes=orderedNodes();
+        const c=hoverIdx>=0&&nodes[hoverIdx]
+          ?{x:parseFloat(nodes[hoverIdx].style.left),y:parseFloat(nodes[hoverIdx].style.top)}
+          :getNodePos(activeId);
+        const dx=c.x-pos.x,dy=c.y-pos.y;
         if(Math.hypot(dx,dy)>1.5) ang=Math.atan2(dy,dx)*180/Math.PI;
-        s = Math.min(0.40, s + Math.pow(merge,1.4)*0.32);
+        s=Math.min(0.4,s+Math.pow(merge,1.4)*0.32);
       }
-      const wob = absorb > 0 ? Math.sin(rip.t*Math.PI*3.4)*0.10*absorb : 0;
-      const sx = 1+s+wob, sy = 1/(1+s*0.92)-wob*0.6;
-      const lead = merge*20 + Math.min(6, sp*0.5);
-      const hl=50-lead*0.9, hr=50+lead*0.9, vr=50-lead*0.35;
-      blob.style.transform = `translate(${pos.x-BLOB_R}px,${pos.y-BLOB_R}px) rotate(${ang}deg) translateX(${s*7}px) scale(${sx},${sy})`;
-      blob.style.borderRadius = `${hl}% ${hr}% ${hr}% ${hl}% / 50% ${vr}% ${vr}% 50%`;
+      const wob=absorb>0?Math.sin(rip.t*Math.PI*3.4)*0.1*absorb:0;
+      const sx=1+s+wob, sy=1/(1+s*0.92)-wob*0.6;
+      const lead=merge*20+Math.min(6,sp*0.5);
+      const hl=50-lead*0.9,hr=50+lead*0.9,vr=50-lead*0.35;
+      blob.style.transform=`translate(${pos.x-BH}px,${pos.y-BH}px) rotate(${ang}deg) translateX(${s*7}px) scale(${sx},${sy})`;
+      blob.style.borderRadius=`${hl}% ${hr}% ${hr}% ${hl}% / 50% ${vr}% ${vr}% 50%`;
+      blob.style.opacity='1';
+      wrap.style.cursor=dragging?'grabbing':'grab';
 
       // SVG goo
-      const a = getNodePos(activeId);
-      const d = Math.hypot(pos.x-a.x, pos.y-a.y);
-      const neck = Math.max(0, 1-d/150) * (1+merge*0.5);
-      const gGroup = document.getElementById('goo-group');
-      const gAnchor = document.getElementById('goo-anchor');
-      const gMid    = document.getElementById('goo-mid');
-      const gMain   = document.getElementById('goo-main');
-      const gTarget = document.getElementById('goo-target');
-      const gDrops  = document.getElementById('goo-drops');
-      if(gGroup && gAnchor && gMid && gMain && gTarget) {
-        gGroup.setAttribute('opacity', String(0.18+merge*0.28));
-        gAnchor.setAttribute('cx',a.x); gAnchor.setAttribute('cy',a.y);
-        gAnchor.setAttribute('r', String(6+16*neck));
-        gMid.setAttribute('cx',(ox+a.x)/2); gMid.setAttribute('cy',(oy+a.y)/2);
-        gMid.setAttribute('rx', String(4+16*neck)); gMid.setAttribute('ry', String(4+16*neck));
-        const ox=pos.x+Math.cos(ang*Math.PI/180)*s*7;
-        const oy=pos.y+Math.sin(ang*Math.PI/180)*s*7;
-        gMain.setAttribute('cx',ox); gMain.setAttribute('cy',oy);
-        gMain.setAttribute('rx', String(26*sx)); gMain.setAttribute('ry', String(26*sy));
-        gMain.setAttribute('transform',`rotate(${ang} ${ox} ${oy})`);
-        if(hover) {
-          const hx=parseFloat(hover.style.left), hy=parseFloat(hover.style.top);
-          gTarget.setAttribute('cx',hx); gTarget.setAttribute('cy',hy);
-          gTarget.setAttribute('r', String(6+22*prox));
-          const mx=(pos.x+hx)/2, my=(pos.y+hy)/2, nk=6+18*prox;
-          gMid.setAttribute('cx',mx); gMid.setAttribute('cy',my);
-          gMid.setAttribute('rx',String(nk)); gMid.setAttribute('ry',String(nk));
-        } else { gTarget.setAttribute('r','0'); }
-      }
+      const a=getNodePos(activeId);
+      const d=Math.hypot(pos.x-a.x,pos.y-a.y);
+      const neck=Math.max(0,1-d/150)*(1+merge*0.5);
+      if(gGroup) gGroup.setAttribute('opacity',String(0.18+merge*0.3));
+      if(gAnchor){gAnchor.setAttribute('cx',a.x);gAnchor.setAttribute('cy',a.y);gAnchor.setAttribute('r',String(6+16*neck));}
+      const ox=pos.x+Math.cos(ang*Math.PI/180)*s*7;
+      const oy=pos.y+Math.sin(ang*Math.PI/180)*s*7;
+      if(gMid){gMid.setAttribute('cx',(ox+a.x)/2);gMid.setAttribute('cy',(oy+a.y)/2);gMid.setAttribute('rx',String(4+16*neck));gMid.setAttribute('ry',String(4+16*neck));}
+      if(gMain){gMain.setAttribute('cx',ox);gMain.setAttribute('cy',oy);gMain.setAttribute('rx',String(33*sx));gMain.setAttribute('ry',String(33*sy));gMain.setAttribute('transform',`rotate(${ang} ${ox} ${oy})`);}
+      const nodes=orderedNodes();
+      if(hoverIdx>=0&&nodes[hoverIdx]&&gTarget&&gMid){
+        const hx=parseFloat(nodes[hoverIdx].style.left),hy=parseFloat(nodes[hoverIdx].style.top);
+        if(gTarget){gTarget.setAttribute('cx',hx);gTarget.setAttribute('cy',hy);gTarget.setAttribute('r',String(8+26*prox));}
+        const mx=ox+(hx-ox)*0.5,my=oy+(hy-oy)*0.5,nk=8+20*prox;
+        gMid.setAttribute('cx',mx);gMid.setAttribute('cy',my);gMid.setAttribute('rx',String(nk));gMid.setAttribute('ry',String(nk));
+      } else if(gTarget){gTarget.setAttribute('r','0');}
 
       // Ripple
-      const rp = document.getElementById('ring-ripple');
-      if(rp){
-        if(rip.t < 1){
-          rip.t = Math.min(1, rip.t+0.045);
-          const e=1-Math.pow(1-rip.t,3);
-          rp.style.transform=`translate(${rip.x}px,${rip.y}px) scale(${0.4+e*1.2})`;
-          rp.style.opacity=String((1-e)*0.75);
-        } else { rp.style.opacity='0'; }
-      }
+      if(rip.t<1){
+        rip.t=Math.min(1,rip.t+0.045);
+        const e=1-Math.pow(1-rip.t,3);
+        if(rp){rp.style.transform=`translate(${rip.x}px,${rip.y}px) scale(${0.45+e*1.15})`;rp.style.opacity=String((1-e)*0.8);}
+      } else if(rp){rp.style.opacity='0';}
 
-      // Drops
+      // Droplets
       if(gDrops){
         const dn=gDrops.children;
         for(let i=0;i<dn.length;i++){
           const p=drops[i];
           if(!p||p.t>=1){dn[i].setAttribute('r','0');continue;}
           p.t=Math.min(1,p.t+0.04);
-          p.x+=p.vx*(1-p.t); p.y+=p.vy*(1-p.t);
-          dn[i].setAttribute('cx',p.x); dn[i].setAttribute('cy',p.y);
-          dn[i].setAttribute('r',String(6*(1-p.t)));
+          p.x+=p.vx*(1-p.t);p.y+=p.vy*(1-p.t);
+          dn[i].setAttribute('cx',p.x);dn[i].setAttribute('cy',p.y);
+          dn[i].setAttribute('r',String(7*(1-p.t)));
         }
       }
 
-      // Icon highlight
-      document.querySelectorAll('.rn').forEach(n=>{
+      // Icon states
+      nodes.forEach((n,i)=>{
         const isAct=parseInt(n.dataset.id)===activeId;
-        const isHov=n===hover;
+        const isHov=i===hoverIdx;
         n.classList.toggle('active',isAct);
         n.classList.toggle('hover',isHov&&!isAct);
         n.classList.toggle('snapping',isHov&&prox>0.55);
       });
 
-      window._ringRAF = requestAnimationFrame(tick);
+      window._ringRAF=requestAnimationFrame(tick);
     }
-    window._ringRAF = requestAnimationFrame(tick);
+    window._ringRAF=requestAnimationFrame(tick);
 
-    // Initial splash
-    splash(...Object.values(getNodePos(activeId)));
+    // Initial splash at active node
+    const p0=getNodePos(activeId); splash(p0.x,p0.y);
   }
 
   async function selectNode(id) {
