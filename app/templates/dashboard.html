@@ -438,9 +438,31 @@
     document.getElementById('ring-wrap').appendChild(gl);
 
     bindRing();
+    setRestingBlob(activeId);
   }
 
   const CX=140, CY=140, R=98;
+
+  function getNodePos(id) {
+    let pos = null;
+    document.querySelectorAll('.rn').forEach(n=>{
+      if(parseInt(n.dataset.id)===id)
+        pos={x:parseFloat(n.style.left),y:parseFloat(n.style.top)};
+    });
+    return pos||{x:CX,y:CY};
+  }
+  function setRestingBlob(id) {
+    const gB=document.getElementById('goo-b');
+    if(!gB) return;
+    const p=getNodePos(id);
+    const sz=26;
+    gB.style.transition='left .42s cubic-bezier(.34,1.56,.64,1),top .42s cubic-bezier(.34,1.56,.64,1),width .28s,height .28s,opacity .3s';
+    gB.style.width  =sz+'px';
+    gB.style.height =sz+'px';
+    gB.style.left   =(p.x-sz/2)+'px';
+    gB.style.top    =(p.y-sz/2)+'px';
+    gB.style.opacity='0.68';
+  }
 
   function positionNodes() {
     const nodes=document.querySelectorAll('.rn');
@@ -488,6 +510,8 @@
       dragging=true;
       cen.classList.add('dragging');
       cen.style.opacity='0'; // goo layer takes over visually
+      const gB=document.getElementById('goo-b');
+      if(gB) gB.style.transition='none'; // instant during drag
       e.preventDefault();
     }
 
@@ -554,8 +578,12 @@
           gT.style.transformOrigin = 'center center';
           gT.style.opacity         = (0.15 + pull*0.68).toFixed(2);
         } else {
-          gB.style.opacity = '0';
           gT.style.opacity = '0';
+          // keep resting blob at active node while dragging elsewhere
+          const ap=getNodePos(activeId); const sz=26;
+          gB.style.width=sz+'px'; gB.style.height=sz+'px';
+          gB.style.left=(ap.x-sz/2)+'px'; gB.style.top=(ap.y-sz/2)+'px';
+          gB.style.opacity='0.55';
         }
       }
 
@@ -601,12 +629,13 @@
         n.style.transition=''; n.style.zIndex='';
         n.classList.remove('hover','snapping');
       });
-      // Reset goo blobs + restore handle
-      ['goo-a','goo-t','goo-b'].forEach(id=>{
+      // Reset goo blobs: hide cursor + tendril, keep resting blob
+      ['goo-a','goo-t'].forEach(id=>{
         const el=document.getElementById(id); if(el) el.style.opacity='0';
       });
       cen.style.opacity='1';
       if(hoveredId!==null) selectNode(hoveredId);
+      setRestingBlob(activeId);
       hoveredId=null;
     };
 
@@ -621,6 +650,7 @@
     document.querySelectorAll('.rn').forEach(n=>{
       n.classList.toggle('active', parseInt(n.dataset.id)===id);
     });
+    setRestingBlob(id);
 
     const ordered=getOrderedLinks();
     const picked=ordered.find(l=>l.id===id);
