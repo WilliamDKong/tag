@@ -165,11 +165,11 @@
     }
     .ring-blob.dragging { cursor: grabbing; }
     .ring-blob-inner {
-      position: absolute; inset: 0; border-radius: 50%;
+      position: absolute; inset: 0; border-radius: inherit;
       backdrop-filter: blur(7px) saturate(200%) brightness(1.25);
       -webkit-backdrop-filter: blur(7px) saturate(200%) brightness(1.25);
-      -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 63%, #000 80%);
-      mask-image: radial-gradient(circle at 50% 50%, transparent 63%, #000 80%);
+      -webkit-mask-image: radial-gradient(closest-side ellipse at 50% 50%, transparent 62%, #000 82%);
+      mask-image: radial-gradient(closest-side ellipse at 50% 50%, transparent 62%, #000 82%);
     }
     .ring-blob-shine {
       position: absolute; inset: 0; border-radius: 50%;
@@ -574,19 +574,24 @@
       vel.y = (vel.y + (ty-pos.y)*STIFF)*DAMP;
       pos.x += vel.x; pos.y += vel.y;
 
-      // Squish along velocity
+      // Squish + organic deform
       const sp = Math.hypot(vel.x, vel.y);
-      const absorb = Math.max(0, 1 - rip.t*1.6);
+      const absorb = Math.max(0, 1 - rip.t*1.5);
       const merge = Math.max(prox, absorb);
       let ang = Math.atan2(vel.y, vel.x) * 180/Math.PI;
-      let s = Math.min(0.22, sp*0.014);
+      let s = Math.min(0.18, sp*0.013);
       if(merge > 0.02){
         const c = hover ? {x:parseFloat(hover.style.left),y:parseFloat(hover.style.top)} : getNodePos(activeId);
         const dx=c.x-pos.x, dy=c.y-pos.y;
         if(Math.hypot(dx,dy)>1.5) ang=Math.atan2(dy,dx)*180/Math.PI;
-        s = Math.min(0.42, s+merge*0.34);
+        s = Math.min(0.40, s + Math.pow(merge,1.4)*0.32);
       }
-      blob.style.transform = `translate(${pos.x-BLOB_R}px,${pos.y-BLOB_R}px) rotate(${ang}deg) scale(${1+s},${1-s*0.82}) rotate(${-ang}deg)`;
+      const wob = absorb > 0 ? Math.sin(rip.t*Math.PI*3.4)*0.10*absorb : 0;
+      const sx = 1+s+wob, sy = 1/(1+s*0.92)-wob*0.6;
+      const lead = merge*20 + Math.min(6, sp*0.5);
+      const hl=50-lead*0.9, hr=50+lead*0.9, vr=50-lead*0.35;
+      blob.style.transform = `translate(${pos.x-BLOB_R}px,${pos.y-BLOB_R}px) rotate(${ang}deg) translateX(${s*7}px) scale(${sx},${sy})`;
+      blob.style.borderRadius = `${hl}% ${hr}% ${hr}% ${hl}% / 50% ${vr}% ${vr}% 50%`;
 
       // SVG goo
       const a = getNodePos(activeId);
@@ -601,12 +606,14 @@
       if(gGroup && gAnchor && gMid && gMain && gTarget) {
         gGroup.setAttribute('opacity', String(0.18+merge*0.28));
         gAnchor.setAttribute('cx',a.x); gAnchor.setAttribute('cy',a.y);
-        gAnchor.setAttribute('r', String(5+14*neck));
-        gMid.setAttribute('cx',(pos.x+a.x)/2); gMid.setAttribute('cy',(pos.y+a.y)/2);
-        gMid.setAttribute('rx', String(3+14*neck)); gMid.setAttribute('ry', String(3+14*neck));
-        gMain.setAttribute('cx',pos.x); gMain.setAttribute('cy',pos.y);
-        gMain.setAttribute('rx', String(26*(1+s*0.9))); gMain.setAttribute('ry', String(26*(1-s*0.8)));
-        gMain.setAttribute('transform',`rotate(${ang} ${pos.x} ${pos.y})`);
+        gAnchor.setAttribute('r', String(6+16*neck));
+        gMid.setAttribute('cx',(ox+a.x)/2); gMid.setAttribute('cy',(oy+a.y)/2);
+        gMid.setAttribute('rx', String(4+16*neck)); gMid.setAttribute('ry', String(4+16*neck));
+        const ox=pos.x+Math.cos(ang*Math.PI/180)*s*7;
+        const oy=pos.y+Math.sin(ang*Math.PI/180)*s*7;
+        gMain.setAttribute('cx',ox); gMain.setAttribute('cy',oy);
+        gMain.setAttribute('rx', String(26*sx)); gMain.setAttribute('ry', String(26*sy));
+        gMain.setAttribute('transform',`rotate(${ang} ${ox} ${oy})`);
         if(hover) {
           const hx=parseFloat(hover.style.left), hy=parseFloat(hover.style.top);
           gTarget.setAttribute('cx',hx); gTarget.setAttribute('cy',hy);
