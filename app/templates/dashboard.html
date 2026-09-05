@@ -171,41 +171,39 @@
 
     /* Node snap glow */
     .rn.snapping {
-      filter: drop-shadow(0 0 12px rgba(41,151,255,0.85));
+      filter: drop-shadow(0 0 14px rgba(255,255,255,0.85));
       opacity: 1 !important;
     }
 
-    /* Ring nodes — glass style */
+    /* Ring nodes — icon only, no circle */
     .rn {
       position: absolute;
-      transform: translate(-50%, -50%) scale(0.88);
+      transform: translate(-50%, -50%) scale(0.82);
       width: 52px; height: 52px;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; z-index: 4;
-      opacity: 0.40;
-      background: rgba(255,255,255,0.06);
-      border: 1.5px solid rgba(255,255,255,0.10);
+      opacity: 0.45;
+      background: none;
+      border: none;
       box-shadow: none;
-      transition: opacity .28s, transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .28s, background .28s, border-color .28s;
+      transition: opacity .28s, transform .28s cubic-bezier(.34,1.56,.64,1), filter .28s;
     }
-    .rn.hover { opacity: 0.70; }
+    .rn.hover { opacity: 0.78; }
     .rn.active {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1.38);
-      background: rgba(255,255,255,0.13);
-      border-color: rgba(255,255,255,0.35);
-      box-shadow: 0 0 0 3px rgba(255,255,255,0.18), 0 0 22px rgba(255,255,255,0.25), 0 6px 20px rgba(0,0,0,0.5);
+      transform: translate(-50%, -50%) scale(1.45);
+      filter: drop-shadow(0 0 8px rgba(255,255,255,0.45));
       z-index: 5;
     }
     .rn img, .rn .rn-em {
-      width: 28px; height: 28px;
-      border-radius: 7px; flex-shrink: 0;
+      width: 34px; height: 34px;
+      border-radius: 8px; flex-shrink: 0;
       pointer-events: none;
     }
     .rn .rn-em {
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
+      font-size: 22px;
     }
 
     /* ══ Grouped list ══ */
@@ -574,11 +572,11 @@
           n.style.transform=''; n.style.opacity=''; n.style.zIndex='';
         } else {
           n.classList.remove('snapping');
-          const baseScale=isActive?1.38:0.88;
+          const baseScale=isActive?1.45:0.82;
           const sc=baseScale+(0.5*ease);
           n.style.transform=`translate(-50%,-50%) scale(${sc.toFixed(3)})`;
           n.style.transition='transform .06s';
-          n.style.opacity=isActive?'1':(0.40+0.50*ease).toFixed(3);
+          n.style.opacity=isActive?'1':(0.45+0.50*ease).toFixed(3);
           n.style.zIndex=isActive?'5':String(Math.round(2+ease*3));
         }
       });
